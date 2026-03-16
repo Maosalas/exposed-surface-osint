@@ -49,7 +49,7 @@ services:
       interval: 30s
       timeout: 15s
       retries: 3
-      start_period: 60s
+      start_period: 120s
 
   # ── OSINT Backend + Frontend ──────────────────────────────────────────────
   osint-analyzer:
@@ -86,8 +86,8 @@ services:
       - osint-evidence:/app/data/evidence
       - osint-keys:/app/data/keys
     networks:
-      - traefik-net
-      - osint-internal
+      - traefik-net      # ← Traefik uses this network to reach the container
+      - osint-internal   # ← internal comms with osint-tools and osint-puppeteer
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -101,22 +101,22 @@ services:
       # ── Mismo patrón que n8n ──────────────────────────────────────
       - "traefik.http.routers.osint.rule=Host(`osint.yourdomain.com`)"
       - "traefik.http.routers.osint.entrypoints=web,websecure"
-      - "traefik.http.routers.osint.middlewares=osint@docker"
+      - "traefik.http.routers.osint.middlewares=osint-sec@docker"
       - "traefik.http.routers.osint.tls=true"
       - "traefik.http.routers.osint.tls.certresolver=cf"
 
       # ── Security headers middleware ───────────────────────────────
-      - "traefik.http.middlewares.osint.headers.SSLHost=yourdomain.com"
-      - "traefik.http.middlewares.osint.headers.SSLRedirect=true"
-      - "traefik.http.middlewares.osint.headers.STSSeconds=315360000"
-      - "traefik.http.middlewares.osint.headers.STSIncludeSubdomains=true"
-      - "traefik.http.middlewares.osint.headers.STSPreload=true"
-      - "traefik.http.middlewares.osint.headers.forceSTSHeader=true"
-      - "traefik.http.middlewares.osint.headers.browserXSSFilter=true"
-      - "traefik.http.middlewares.osint.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.osint-sec.headers.SSLHost=yourdomain.com"
+      - "traefik.http.middlewares.osint-sec.headers.SSLRedirect=true"
+      - "traefik.http.middlewares.osint-sec.headers.STSSeconds=315360000"
+      - "traefik.http.middlewares.osint-sec.headers.STSIncludeSubdomains=true"
+      - "traefik.http.middlewares.osint-sec.headers.STSPreload=true"
+      - "traefik.http.middlewares.osint-sec.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.osint-sec.headers.browserXSSFilter=true"
+      - "traefik.http.middlewares.osint-sec.headers.contentTypeNosniff=true"
 
       # ── WebSocket support ─────────────────────────────────────────
-      - "traefik.http.middlewares.osint.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.osint-sec.headers.customrequestheaders.X-Forwarded-Proto=https"
 
       # ── Servicio ──────────────────────────────────────────────────
       - "traefik.http.services.osint.loadbalancer.server.port=8080"
@@ -137,3 +137,4 @@ networks:
     name: traefik
   osint-internal:
     driver: bridge
+    # Note: NOT internal:true — osint-tools needs internet to run recon tools

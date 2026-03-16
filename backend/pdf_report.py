@@ -1,5 +1,5 @@
 """
-Generador de Reportes PDF - OSINT Surface Analyzer
+OSINT Surface Analyzer — PDF Report Generator
 """
 import io
 from datetime import datetime
@@ -21,13 +21,74 @@ C_BLUE = HexColor('#448aff'); C_T1   = HexColor('#dde8f5'); C_T2   = HexColor('#
 C_T3   = HexColor('#2d4a62')
 
 SEV_COL = {'critical':C_RED,'high':C_ORNG,'medium':C_YEL,'low':C_GREEN,'info':C_BLUE}
-MOD_LABELS = {
+MOD_LABELS_ES = {
     'emails':'Correos Electronicos','subdomains':'Subdominios','whois':'WHOIS',
     'ssl':'Certificados SSL/TLS','dmarc':'Registros DMARC/SPF','ports':'Puertos Abiertos',
     'technologies':'Tecnologias','robots':'ROBOTS.txt','dns':'Servidores DNS & MX',
     'asn':'ASN','data_leak':'Data Leak','cloud':'Infraestructura Cloud',
     'cybersquatting':'Cybersquatting','favicons':'Analisis FAVICON',
     'credentials':'Credenciales Exfiltradas','sitemap':'Site Map',
+}
+MOD_LABELS_EN = {
+    'emails':'Email Addresses','subdomains':'Subdomains','whois':'WHOIS',
+    'ssl':'SSL/TLS Certificates','dmarc':'DMARC/SPF Records','ports':'Open Ports',
+    'technologies':'Technologies','robots':'ROBOTS.txt','dns':'DNS & MX Servers',
+    'asn':'ASN','data_leak':'Data Leak','cloud':'Cloud Infrastructure',
+    'cybersquatting':'Cybersquatting','favicons':'FAVICON Analysis',
+    'credentials':'Leaked Credentials','sitemap':'Site Map',
+}
+MOD_LABELS = MOD_LABELS_ES  # default, overridden at runtime
+
+# i18n strings
+_I18N = {
+    'es': {
+        'title':      'OSINT SURFACE ANALYZER',
+        'subtitle':   'Analisis de Superficie Expuesta',
+        'client':     'CLIENTE',
+        'domains':    'DOMINIOS',
+        'date':       'FECHA',
+        'modules':    'MODULOS',
+        'findings':   'HALLAZGOS',
+        'sev_title':  'RESUMEN DE SEVERIDAD',
+        'exec_sum':   '// RESUMEN EJECUTIVO',
+        'toc':        '// TABLA DE CONTENIDOS',
+        'detail':     '// DETALLE POR MODULO',
+        'findings_lbl':'HALLAZGOS',
+        'tools_lbl':  'HERRAMIENTAS EJECUTADAS',
+        'toc_heads':  ['#','MODULO','HALLAZGOS','SEVERIDAD'],
+        'find_heads': ['SEV','TIPO','VALOR / DESCRIPCION'],
+        'tool_heads': ['HERRAMIENTA','ESTADO','DETALLE'],
+        'analyzed':   lambda n,c: f"Se analizaron {n} dominio(s) para {c}.",
+        'crit_found': lambda n: f"Se identificaron {n} hallazgo(s) critico(s) que requieren atencion inmediata.",
+        'high_found': lambda n: f"Se identificaron {n} hallazgo(s) de severidad alta.",
+        'no_crit':    "No se identificaron hallazgos criticos.",
+        'footer':     'OSINT Surface Analyzer',
+        'page':       'Pagina',
+    },
+    'en': {
+        'title':      'OSINT SURFACE ANALYZER',
+        'subtitle':   'Exposed Attack Surface Analysis',
+        'client':     'CLIENT',
+        'domains':    'DOMAINS',
+        'date':       'DATE',
+        'modules':    'MODULES',
+        'findings':   'FINDINGS',
+        'sev_title':  'SEVERITY SUMMARY',
+        'exec_sum':   '// EXECUTIVE SUMMARY',
+        'toc':        '// TABLE OF CONTENTS',
+        'detail':     '// MODULE DETAILS',
+        'findings_lbl':'FINDINGS',
+        'tools_lbl':  'TOOLS EXECUTED',
+        'toc_heads':  ['#','MODULE','FINDINGS','SEVERITY'],
+        'find_heads': ['SEV','TYPE','VALUE / DESCRIPTION'],
+        'tool_heads': ['TOOL','STATUS','DETAIL'],
+        'analyzed':   lambda n,c: f"Analyzed {n} domain(s) for {c}.",
+        'crit_found': lambda n: f"Identified {n} critical finding(s) requiring immediate attention.",
+        'high_found': lambda n: f"Identified {n} high-severity finding(s).",
+        'no_crit':    "No critical findings identified.",
+        'footer':     'OSINT Surface Analyzer',
+        'page':       'Page',
+    },
 }
 MOD_ICON = {
     'emails':'@','subdomains':'SUB','whois':'WHS','ssl':'SSL','dmarc':'MX',
@@ -79,10 +140,15 @@ def dtable(data, widths):
     return t
 
 def generate_pdf(scan_data: dict, evidence_items: list = None,
-                 evidence_dir: str = "/app/data/evidence") -> bytes:
+                 evidence_dir: str = "/app/data/evidence",
+                 lang: str = "es") -> bytes:
     from pathlib import Path as _Path
     buf = io.BytesIO()
     W,H = A4; mg = 16*mm; cw = W-2*mg
+    # i18n setup
+    _lang = lang if lang in _I18N else 'es'
+    _t = _I18N[_lang]
+    _MOD_LABELS = MOD_LABELS_EN if _lang == 'en' else MOD_LABELS_ES
     doc = SimpleDocTemplate(buf,pagesize=A4,leftMargin=mg,rightMargin=mg,topMargin=mg,bottomMargin=12*mm)
     st = S(); story = []
     if evidence_items is None:
@@ -98,21 +164,21 @@ def generate_pdf(scan_data: dict, evidence_items: list = None,
 
     # Cover
     story += [FilledRect(cw,3,C_CYAN), Spacer(1,6*mm),
-              Paragraph('OSINT SURFACE ANALYZER',st['h1']),
-              Paragraph('OSINT Surface Analyzer',st['sub']),
+              Paragraph(_t['title'],st['h1']),
+              Paragraph(_t['subtitle'],st['sub']),
               Spacer(1,2*mm), HRFlowable(width=cw,thickness=0.4,color=C_BRD), Spacer(1,5*mm)]
-    story.append(dtable([['CLIENTE',company.upper()],['DOMINIOS',', '.join(domains) if domains else 'N/A'],
-        ['FECHA',dstr],['MODULOS',str(len(modules))],['HALLAZGOS',str(sum(stats.values()))]],
+    story.append(dtable([[_t['client'],company.upper()],[_t['domains'],', '.join(domains) if domains else 'N/A'],
+        [_t['date'],dstr],[_t['modules'],str(len(modules))],[_t['findings'],str(sum(stats.values()))]],
         [48*mm,cw-48*mm]))
-    story += [Spacer(1,5*mm), Paragraph('RESUMEN DE SEVERIDAD',st['lbl']), Spacer(1,2*mm), SevBar(stats,cw), Spacer(1,8*mm)]
+    story += [Spacer(1,5*mm), Paragraph(_t['sev_title'],st['lbl']), Spacer(1,2*mm), SevBar(stats,cw), Spacer(1,8*mm)]
 
     # Exec summary
-    story += [Paragraph('// RESUMEN EJECUTIVO',st['h2']), HRFlowable(width=cw,thickness=0.3,color=C_BRD), Spacer(1,2*mm)]
+    story += [Paragraph(_t['exec_sum'],st['h2']), HRFlowable(width=cw,thickness=0.3,color=C_BRD), Spacer(1,2*mm)]
     all_f = [{**f,'_mod':mid} for mid,md in modules.items() if isinstance(md,dict) for f in md.get('findings',[])]
     crit = [f for f in all_f if f.get('severity')=='critical']
     high = [f for f in all_f if f.get('severity')=='high']
     for line in [
-        f"Se analizaron {len(domains)} dominio(s) para {company}.",
+        _t['analyzed'](len(domains), company),
         f"Se ejecutaron {len(modules)} modulos. Total hallazgos: {len(all_f)} ({stats.get('critical',0)} criticos, {stats.get('high',0)} altos, {stats.get('medium',0)} medios, {stats.get('low',0)} bajos, {stats.get('info',0)} info).",
         *(([f"CRITICO: {len(crit)} hallazgo(s) requieren atencion inmediata."]) if crit else []),
         *(([f"ALTO: {len(high)} hallazgo(s) de severidad alta detectados."]) if high else []),
@@ -137,9 +203,9 @@ def generate_pdf(scan_data: dict, evidence_items: list = None,
 
     # TOC
     story += [Paragraph('// INDICE DE MODULOS',st['h2']), HRFlowable(width=cw,thickness=0.3,color=C_BRD), Spacer(1,2*mm)]
-    toc = [['#','MODULO','HALLAZGOS','SEVERIDAD']]
+    toc = [_t['toc_heads']]
     for i,(mid,md) in enumerate(modules.items(),1):
-        toc.append([str(i),MOD_LABELS.get(mid,mid),str(len(md.get('findings',[])) if isinstance(md,dict) else 0),(md.get('severity','info').upper() if isinstance(md,dict) else 'INFO')])
+        toc.append([str(i),_MOD_LABELS.get(mid,mid),str(len(md.get('findings',[])) if isinstance(md,dict) else 0),(md.get('severity','info').upper() if isinstance(md,dict) else 'INFO')])
     tt = dtable(toc,[10*mm,80*mm,25*mm,25*mm])
     for i,(mid,md) in enumerate(modules.items(),1):
         if isinstance(md,dict):
@@ -148,10 +214,10 @@ def generate_pdf(scan_data: dict, evidence_items: list = None,
     story += [tt, PageBreak()]
 
     # Module details
-    story += [Paragraph('// DETALLE POR MODULO',st['h2']), HRFlowable(width=cw,thickness=0.3,color=C_BRD)]
+    story += [Paragraph(_t['detail'],st['h2']), HRFlowable(width=cw,thickness=0.3,color=C_BRD)]
     for idx,(mid,md) in enumerate(modules.items(),1):
         if not isinstance(md,dict): continue
-        lbl=MOD_LABELS.get(mid,mid); icon=MOD_ICON.get(mid,'?'); sev=md.get('severity','info')
+        lbl=_MOD_LABELS.get(mid,mid); icon=MOD_ICON.get(mid,'?'); sev=md.get('severity','info')
         scol=SEV_COL.get(sev,C_T2); findings=md.get('findings',[]); tools=md.get('tools',[])
         story.append(Spacer(1,4*mm))
         hdr=Table([[
@@ -165,8 +231,8 @@ def generate_pdf(scan_data: dict, evidence_items: list = None,
         story.append(KeepTogether([hdr]))
         if md.get('summary'): story += [Spacer(1,2*mm), Paragraph(md['summary'],st['body'])]
         if findings:
-            story += [Spacer(1,2*mm), Paragraph(f'HALLAZGOS ({len(findings)})',st['lbl']), Spacer(1,1*mm)]
-            rows = [['SEV','TIPO','VALOR / DESCRIPCION']]
+            story += [Spacer(1,2*mm), Paragraph(f"{_t['findings_lbl']} ({len(findings)})",st['lbl']), Spacer(1,1*mm)]
+            rows = [_t['find_heads']]
             for f in findings[:25]:
                 val = str(f.get('description') or f.get('value') or f.get('url') or f.get('domain') or f.get('path') or '')
                 if f.get('port'): val = f"Port {f['port']}/{f.get('service','')} - {val}"
@@ -268,7 +334,7 @@ def generate_pdf(scan_data: dict, evidence_items: list = None,
     # Back cover
     story += [PageBreak(), Spacer(1,18*mm), FilledRect(cw,2,C_CYAN), Spacer(1,6*mm),
               Paragraph('FIN DEL REPORTE',st['h1']), Spacer(1,3*mm),
-              Paragraph(f'OSINT Surface Analyzer  |  {dstr}  |  {company}',st['dim']), Spacer(1,2*mm),
+              Paragraph(f"{_t['footer']}  |  {dstr}  |  {company}",st['dim']), Spacer(1,2*mm),
               Paragraph('Este reporte contiene informacion confidencial de reconocimiento pasivo. Distribucion restringida.',
                         ParagraphStyle('disc',fontName='Courier',fontSize=7,textColor=C_T3))]
 

@@ -80,14 +80,13 @@ def _get_or_create_salt() -> bytes:
 # ── Key derivation: PBKDF2-HMAC-SHA256 ───────────────────────────────────────
 def _derive_fernet_key(salt: bytes) -> bytes:
     """
-    Derives encryption key from:
-      - OSINT_DEPLOY_SECRET env var (set once at deploy, never rotated)
-      - Container hostname (ties key to this container)
+    Derives encryption key from OSINT_DEPLOY_SECRET only.
+    NOT tied to hostname — hostname changes on every docker rebuild
+    which would invalidate all stored keys.
     600 000 PBKDF2 iterations (OWASP 2023 recommendation for SHA-256).
     """
     deploy_secret = os.environ.get("OSINT_DEPLOY_SECRET", "osint-default-changeme")
-    hostname      = os.environ.get("HOSTNAME", "osint-analyzer")
-    password      = f"{deploy_secret}:{hostname}".encode()
+    password      = deploy_secret.encode()
     raw = hashlib.pbkdf2_hmac("sha256", password, salt, _PBKDF2_ITERATIONS, dklen=32)
     return base64.urlsafe_b64encode(raw)
 
@@ -116,7 +115,8 @@ def load_keys() -> dict:
         plain = b"\x00" * len(plain)  # best-effort wipe
         return data
     except Exception as e:
-        _log.warning("load_keys failed (%s) — returning empty", type(e).__name__)
+        _log.warning("load_keys failed (%s: %s) — keys may have been encrypted with different secret or hostname",
+                     type(e).__name__, str(e)[:100])
         return {}
 
 def save_keys(keys: dict) -> None:

@@ -30,7 +30,7 @@ async function getBrowser() {
         "--disable-gpu",
         "--no-first-run",
         "--no-zygote",
-        "--single-process",          // more stable in containers
+        "--single-process",
         "--disable-extensions",
         "--disable-background-networking",
         "--disable-default-apps",
@@ -40,8 +40,12 @@ async function getBrowser() {
         "--mute-audio",
         "--disable-notifications",
         "--disable-permissions-api",
-        // Network isolation: block private IPs to prevent SSRF
-        "--disable-features=NetworkService",
+        // Fix: disable crashpad reporter (causes --database error in containers)
+        "--disable-crash-reporter",
+        "--disable-crashpad",
+        "--no-report-upload",
+        // Network isolation
+        "--disable-features=NetworkService,VizDisplayCompositor",
       ],
       ignoreHTTPSErrors: true,
       timeout: 10000,

@@ -14,6 +14,30 @@
 
 ---
 
+## Screenshots
+
+> Tested against `tesla.com` — a public bug bounty target.
+
+### Dashboard
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Live Scan — Real-time log with 16 modules running in parallel
+![Live Scan](docs/screenshots/live-log.png)
+
+### Findings — Email addresses discovered with per-finding evidence controls
+![Findings](docs/screenshots/findings.png)
+
+### Auto-captured Evidence — HTTP headers per subdomain, automatically collected
+![Evidence](docs/screenshots/evidence.png)
+
+### Settings — AES-128 encrypted API key storage with audit log
+![Settings](docs/screenshots/settings.png)
+
+### Excel Report — Multi-sheet workbook with severity summary
+![Excel Report](docs/screenshots/report-excel.png)
+
+---
+
 ## Features
 
 ### 🔎 Automated Recon Modules

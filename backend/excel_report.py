@@ -1,6 +1,6 @@
 """
 Generador de Reportes Excel - Análisis de Información Expuesta
-
+OSINT Surface Analyzer
 """
 import io
 import os
@@ -73,7 +73,7 @@ def _right():
     return Alignment(horizontal="right", vertical="center")
 
 def _hdr(ws, row, col, value, width_hint=None):
-    cell = ws.cell(row=row, column=col, value=value)
+    cell = ws.cell(row=row, column=col, value=_xl_safe(value))
     cell.fill = _fill(BG_CARD)
     cell.font = _font(C_CYAN, bold=True, size=9)
     cell.alignment = _center()
@@ -82,8 +82,19 @@ def _hdr(ws, row, col, value, width_hint=None):
         ws.column_dimensions[get_column_letter(col)].width = width_hint
     return cell
 
+import re as _re
+
+def _xl_safe(value):
+    """Strip illegal Excel characters (control chars except tab/newline) from strings."""
+    if not isinstance(value, str):
+        return value
+    # Remove ASCII control characters (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F) and 0x7F
+    cleaned = _re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', value)
+    # Also truncate very long strings
+    return cleaned[:32767] if cleaned else cleaned
+
 def _row_data(ws, row, col, value, sev="info", manual=False, center=False):
-    cell = ws.cell(row=row, column=col, value=value)
+    cell = ws.cell(row=row, column=col, value=_xl_safe(value))
     row_bg = BG_ROW if row % 2 == 0 else BG_MID
     cell.fill = _fill(row_bg)
     txt_color = C_T1 if not manual else C_PURPLE
@@ -93,7 +104,7 @@ def _row_data(ws, row, col, value, sev="info", manual=False, center=False):
     return cell
 
 def _sev_cell(ws, row, col, sev: str):
-    cell = ws.cell(row=row, column=col, value=sev.upper())
+    cell = ws.cell(row=row, column=col, value=_xl_safe(sev.upper()))
     color = SEV_COLOR.get(sev, (C_BLUE, C_BLUE))[0]
     cell.fill = _fill(BG_ROW if row % 2 == 0 else BG_MID)
     cell.font = Font(color=color, bold=True, size=9, name="Arial")
@@ -102,7 +113,7 @@ def _sev_cell(ws, row, col, sev: str):
     return cell
 
 def _section_title(ws, row, col, text, span=1):
-    cell = ws.cell(row=row, column=col, value=text)
+    cell = ws.cell(row=row, column=col, value=_xl_safe(text))
     cell.fill = _fill(BG_DARK)
     cell.font = _font(C_CYAN, bold=True, size=10)
     cell.alignment = _left(wrap=False)
@@ -139,14 +150,14 @@ def _build_cover(wb: Workbook, meta: dict, stats: dict):
     # Title block
     ws.row_dimensions[1].height = 10
     ws.row_dimensions[2].height = 45
-    c = ws.cell(row=2, column=2, value="ANÁLISIS DE INFORMACIÓN EXPUESTA")
+    c = ws.cell(row=2, column=2, value=_xl_safe("ANÁLISIS DE INFORMACIÓN EXPUESTA"))
     c.fill = _fill(BG_DARK)
     c.font = Font(color=C_CYAN, bold=True, size=18, name="Arial")
     c.alignment = Alignment(horizontal="left", vertical="center")
     ws.merge_cells("B2:H2")
 
     ws.row_dimensions[3].height = 20
-    c = ws.cell(row=3, column=2, value="OSINT Surface Analyzer")
+    c = ws.cell(row=3, column=2, value=_xl_safe(_t["subtitle"]))
     c.fill = _fill(BG_DARK)
     c.font = Font(color=C_T3, bold=False, size=10, name="Arial")
     c.alignment = Alignment(horizontal="left", vertical="center")
@@ -156,18 +167,18 @@ def _build_cover(wb: Workbook, meta: dict, stats: dict):
 
     # Info grid
     info_rows = [
-        ("EMPRESA / CLIENTE", company),
-        ("DOMINIOS ANALIZADOS", domains),
-        ("FECHA DEL ESCANEO", ts),
-        ("MÓDULOS EJECUTADOS", mod_count),
+        (_t["cover_client"], company),
+        (_t["cover_domains"], domains),
+        (_t["cover_date"], ts),
+        (_t["cover_modules"], mod_count),
     ]
     for i, (lbl, val) in enumerate(info_rows, start=5):
         ws.row_dimensions[i].height = 22
-        lc = ws.cell(row=i, column=2, value=lbl)
+        lc = ws.cell(row=i, column=2, value=_xl_safe(lbl))
         lc.fill = _fill(BG_CARD); lc.font = _font(C_T2, bold=True, size=9)
         lc.alignment = _right(); lc.border = _border_thin()
         ws.merge_cells(start_row=i, start_column=2, end_row=i, end_column=3)
-        vc = ws.cell(row=i, column=4, value=val)
+        vc = ws.cell(row=i, column=4, value=_xl_safe(val))
         vc.fill = _fill(BG_MID); vc.font = _font(C_T1, size=9)
         vc.alignment = _left(); vc.border = _border_thin()
         ws.merge_cells(start_row=i, start_column=4, end_row=i, end_column=8)
@@ -178,7 +189,7 @@ def _build_cover(wb: Workbook, meta: dict, stats: dict):
     sev_labels = [("CRÍTICO", "critical", C_RED),("ALTO","high",C_ORANGE),
                   ("MEDIO","medium",C_YELLOW),("BAJO","low",C_GREEN),("INFO","info",C_BLUE)]
     ws.row_dimensions[10].height = 18
-    c = ws.cell(row=10, column=2, value="RESUMEN DE HALLAZGOS")
+    c = ws.cell(row=10, column=2, value=_xl_safe(_t["cover_summary"]))
     c.fill = _fill(BG_DARK); c.font = _font(C_CYAN, bold=True, size=11)
     c.alignment = _left(); ws.merge_cells("B10:H10")
 
@@ -186,12 +197,12 @@ def _build_cover(wb: Workbook, meta: dict, stats: dict):
     for j, (lbl, key, color) in enumerate(sev_labels):
         col = 2 + j
         cnt = stats.get(key, 0)
-        ws.cell(row=11, column=col, value=lbl).fill = _fill(BG_CARD)
+        ws.cell(row=11, column=col, value=_xl_safe(lbl)).fill = _fill(BG_CARD)
         ws.cell(row=11, column=col).font = Font(color=color, bold=True, size=9, name="Arial")
         ws.cell(row=11, column=col).alignment = _center()
         ws.cell(row=11, column=col).border = _border_thin(color)
         ws.row_dimensions[12].height = 32
-        nc = ws.cell(row=12, column=col, value=cnt)
+        nc = ws.cell(row=12, column=col, value=_xl_safe(cnt))
         nc.fill = _fill(BG_MID)
         nc.font = Font(color=color, bold=True, size=20, name="Arial")
         nc.alignment = _center(); nc.border = _border_thin(color)
@@ -200,16 +211,15 @@ def _build_cover(wb: Workbook, meta: dict, stats: dict):
 
     # Note about manual findings
     ws.row_dimensions[14].height = 18
-    note = ws.cell(row=14, column=2,
-        value="⚠  Los hallazgos marcados con [MANUAL] fueron ingresados manualmente por el analista.")
+    note = ws.cell(row=14, column=2, value=_xl_safe("⚠  Los hallazgos marcados con [MANUAL] fueron ingresados manualmente por el analista."))
     note.fill = _fill(BG_DARK)
     note.font = Font(color=C_YELLOW, size=9, name="Arial", italic=True)
     note.alignment = _left()
     ws.merge_cells("B14:H14")
 
-    #  footer-ish
+    # footer
     ws.row_dimensions[16].height = 14
-    foot = ws.cell(row=16, column=2, value="Generado por: Análisis de Información Expuesta  |  ")
+    foot = ws.cell(row=16, column=2, value=_xl_safe("OSINT Surface Analyzer"))
     foot.fill = _fill(BG_DARK); foot.font = Font(color=C_T3, size=8, name="Arial", italic=True)
     foot.alignment = _left(); ws.merge_cells("B16:H16")
 
@@ -226,11 +236,11 @@ def _build_cover(wb: Workbook, meta: dict, stats: dict):
 
 
 def _build_summary(wb: Workbook, modules: dict):
-    ws = wb.create_sheet("Resumen")
+    ws = wb.create_sheet(_t["sheet_summary"])
     _tab_color(ws, C_GREEN)
     ws.sheet_view.showGridLines = False
 
-    hdrs = ["Módulo","Etiqueta","Hallazgos","Severidad","Manual?","Resumen"]
+    hdrs = [_t["col_module"],_t["col_label"],_t["col_findings"],_t["col_severity"],_t["col_manual"],_t["sheet_summary"]]
     widths = {"A":4,"B":18,"C":22,"D":10,"E":10,"F":9,"G":55}
 
     ws.row_dimensions[1].height = 20
@@ -268,11 +278,11 @@ def _build_summary(wb: Workbook, modules: dict):
 
 
 def _build_findings(wb: Workbook, modules: dict, evidence_items: list = None):
-    ws = wb.create_sheet("Todos los Hallazgos")
+    ws = wb.create_sheet(_t["sheet_findings"])
     _tab_color(ws, C_RED)
     ws.sheet_view.showGridLines = False
 
-    hdrs = ["Módulo","Tipo","Valor / Descripción","Dominio","Severidad","Manual?","Detalles Adicionales","Evidencias"]
+    hdrs = [_t["col_module"],_t["col_type"],_t["col_value"],_t["col_domain"],_t["col_severity"],_t["col_manual"],_t["col_details"],_t["sheet_evidence"]]
     widths = {"A":4,"B":18,"C":18,"D":40,"E":22,"F":12,"G":9,"H":45,"I":50}
 
     ws.row_dimensions[1].height = 20
@@ -350,8 +360,8 @@ def _build_data_leak(wb: Workbook, mod_data: dict):
     _tab_color(ws, C_RED)
     ws.sheet_view.showGridLines = False
 
-    hdrs = ["Breach Name","Dominio","Fecha","Registros Expuestos",
-            "Tipos de Datos","Severidad","Verificado","Sensible","Descripción","Fuente"]
+    hdrs = [_t["col_breach"],_t["col_domain"],_t["date"],_t["col_records"],
+            _t["col_data_types"],_t["col_severity"],_t["col_verified"],_t["col_sensitive"],_t["col_description"],_t["col_source"]]
 
     ws.row_dimensions[1].height = 20
     _section_title(ws, 1, 2, "// DATA LEAK — BRECHAS DE DATOS IDENTIFICADAS", span=10)
@@ -395,7 +405,7 @@ def _build_emails(wb: Workbook, mod_data: dict):
     _tab_color(ws, C_BLUE)
     ws.sheet_view.showGridLines = False
 
-    hdrs = ["Email","Dominio","Tipo","Fuente","Severidad","Manual?"]
+    hdrs = [_t["col_email"],_t["col_domain"],_t["col_type"],_t["col_source"],_t["col_severity"],_t["col_manual"]]
     ws.row_dimensions[1].height = 20
     _section_title(ws, 1, 2, "// CORREOS ELECTRÓNICOS IDENTIFICADOS", span=6)
     ws.row_dimensions[2].height = 16
@@ -421,11 +431,11 @@ def _build_subdomains(wb: Workbook, mod_data: dict):
     findings = mod_data.get("findings",[])
     if not subs and not findings: return
 
-    ws = wb.create_sheet("Subdominios")
+    ws = wb.create_sheet(_t["sheet_subdomains"])
     _tab_color(ws, C_GREEN)
     ws.sheet_view.showGridLines = False
 
-    hdrs = ["Subdominio","IP","Código HTTP","HTTPS","Tecnología","Severidad","Manual?"]
+    hdrs = [_t["col_subdomain"],_t["col_ip"],_t["col_http_code"],_t["col_https"],_t["col_technology"],_t["col_severity"],_t["col_manual"]]
     ws.row_dimensions[1].height = 20
     _section_title(ws, 1, 2, "// SUBDOMINIOS ACTIVOS", span=7)
     ws.row_dimensions[2].height = 16
@@ -460,7 +470,7 @@ def _build_ports(wb: Workbook, mod_data: dict):
     _tab_color(ws, C_ORANGE)
     ws.sheet_view.showGridLines = False
 
-    hdrs = ["Dominio/IP","Puerto","Servicio","Versión","Estado","Riesgo","Severidad","Manual?"]
+    hdrs = [_t["col_domain"],_t["col_port"],_t["col_service"],_t["col_version"],_t["col_status"],_t["col_risk"],_t["col_severity"],_t["col_manual"]]
     ws.row_dimensions[1].height = 20
     _section_title(ws, 1, 2, "// PUERTOS ABIERTOS", span=8)
     ws.row_dimensions[2].height = 16
@@ -499,7 +509,7 @@ def _build_generic(wb: Workbook, mod_id: str, mod_data: dict):
     _tab_color(ws, C_BLUE)
     ws.sheet_view.showGridLines = False
 
-    hdrs = ["Tipo","Valor","Dominio","Severidad","Manual?","Descripción"]
+    hdrs = [_t["col_type"],_t["col_value"],_t["col_domain"],_t["col_severity"],_t["col_manual"],_t["col_description"]]
     ws.row_dimensions[1].height = 20
     _section_title(ws, 1, 2, f"// {label.upper()}", span=6)
     ws.row_dimensions[2].height = 16
@@ -528,11 +538,11 @@ def _build_generic(wb: Workbook, mod_id: str, mod_data: dict):
 
 def _build_tools(wb: Workbook, modules: dict):
     """Sheet listing all tools, categorized by auto/manual."""
-    ws = wb.create_sheet("Herramientas")
+    ws = wb.create_sheet(_t["sheet_tools"])
     _tab_color(ws, C_T2)
     ws.sheet_view.showGridLines = False
 
-    hdrs = ["Módulo","Herramienta","Dominio","Estado","URL","Notas"]
+    hdrs = [_t["col_module"],_t["col_tool"],_t["col_domain"],_t["col_status"],_t["col_url"],_t["col_notes"]]
     ws.row_dimensions[1].height = 20
     _section_title(ws, 1, 2, "// HERRAMIENTAS REFERENCIADAS", span=6)
     ws.row_dimensions[2].height = 16
@@ -549,8 +559,7 @@ def _build_tools(wb: Workbook, modules: dict):
             _row_data(ws, r, 2, MOD_LABELS.get(mod_id, mod_id))
             _row_data(ws, r, 3, tool.get("tool",""))
             _row_data(ws, r, 4, tool.get("domain",""))
-            cell_s = ws.cell(row=r, column=6,
-                value="MANUAL" if is_manual else "AUTO")
+            cell_s = ws.cell(row=r, column=6, value=_xl_safe("MANUAL" if is_manual else "AUTO"))
             cell_s.fill = _fill(BG_ROW if r%2==0 else BG_MID)
             cell_s.font = Font(color=C_YELLOW if is_manual else C_GREEN,
                                bold=True, size=9, name="Arial")
@@ -576,7 +585,7 @@ def _build_evidence(wb: Workbook, evidence_items: list, evidence_dir: str = "/ap
     from openpyxl.drawing.image import Image as XLImage
     from PIL import Image as PILImage
 
-    ws = wb.create_sheet("Evidencias")
+    ws = wb.create_sheet(_t["sheet_evidence"])
     _tab_color(ws, "FF8C00")
     ws.sheet_view.showGridLines = False
 
@@ -620,7 +629,7 @@ def _build_evidence(wb: Workbook, evidence_items: list, evidence_dir: str = "/ap
         ROW += 1
 
         # Column headers
-        hdrs = ["Archivo", "Caption / Descripción", "Tipo", "Fuente", "Tamaño", "Fecha", "Finding ref."]
+        hdrs = [_t["col_file"],_t["col_caption"],_t["col_type"],_t["col_source"],_t["col_size"],_t["date"],_t["col_finding_ref"]]
         for ci, h in enumerate(hdrs, start=2):
             c = ws.cell(row=ROW, column=ci)
             c.value = h
@@ -736,8 +745,86 @@ def _build_evidence(wb: Workbook, evidence_items: list, evidence_dir: str = "/ap
     ws.freeze_panes = "B4"
 
 
+_EXCEL_I18N = {
+    'es': {
+        'sheet_summary':   'Resumen',
+        'sheet_findings':  'Todos los Hallazgos',
+        'sheet_evidence':  'Evidencias',
+        'sheet_subdomains': 'Subdominios',
+        'sheet_tools':      'Herramientas',
+        'title':           'OSINT Surface Analyzer',
+        'subtitle':        'Analisis de Superficie Expuesta',
+        'client':          'Cliente',
+        'cover_client':    'EMPRESA / CLIENTE',
+        'cover_domains':   'DOMINIOS ANALIZADOS',
+        'cover_date':      'FECHA DEL ESCANEO',
+        'cover_modules':   'MÓDULOS EJECUTADOS',
+        'cover_summary':   'RESUMEN DE HALLAZGOS',
+        'domains':         'Dominios',
+        'date':            'Fecha',
+        'modules_run':     'Modulos ejecutados',
+        'total_findings':  'Total hallazgos',
+        'severity':        'Severidad',
+        'module':          'Modulo',
+        'type':            'Tipo',
+        'value':           'Valor',
+        'description':     'Descripcion',
+        'source':          'Fuente',
+        'evidence':        'Evidencias',
+        'mod_labels': {
+            'emails':'Correos','subdomains':'Subdominios','whois':'WHOIS',
+            'ssl':'SSL/TLS','dmarc':'DMARC/SPF','ports':'Puertos',
+            'technologies':'Tecnologias','robots':'ROBOTS.txt','dns':'DNS & MX',
+            'asn':'ASN','data_leak':'Data Leak','cloud':'Cloud',
+            'cybersquatting':'Cybersquatting','favicons':'FAVICON',
+            'credentials':'Credenciales','sitemap':'Sitemap',
+        },
+    },
+    'en': {
+        'sheet_summary':   'Summary',
+        'sheet_findings':  'All Findings',
+        'sheet_evidence':  'Evidence',
+        'sheet_subdomains': 'Subdomains',
+        'sheet_tools':      'Tools',
+        'title':           'OSINT Surface Analyzer',
+        'subtitle':        'Exposed Attack Surface Analysis',
+        'client':          'Client',
+        'cover_client':    'COMPANY / CLIENT',
+        'cover_domains':   'DOMAINS ANALYZED',
+        'cover_date':      'SCAN DATE',
+        'cover_modules':   'MODULES EXECUTED',
+        'cover_summary':   'FINDINGS SUMMARY',
+        'domains':         'Domains',
+        'date':            'Date',
+        'modules_run':     'Modules executed',
+        'total_findings':  'Total findings',
+        'severity':        'Severity',
+        'module':          'Module',
+        'type':            'Type',
+        'value':           'Value',
+        'description':     'Description',
+        'source':          'Source',
+        'evidence':        'Evidence',
+        'mod_labels': {
+            'emails':'Emails','subdomains':'Subdomains','whois':'WHOIS',
+            'ssl':'SSL/TLS','dmarc':'DMARC/SPF','ports':'Open Ports',
+            'technologies':'Technologies','robots':'ROBOTS.txt','dns':'DNS & MX',
+            'asn':'ASN','data_leak':'Data Leak','cloud':'Cloud Infra',
+            'cybersquatting':'Cybersquatting','favicons':'FAVICON',
+            'credentials':'Leaked Credentials','sitemap':'Sitemap',
+        },
+    },
+}
+
+# Module-level _t — set by generate_excel before calling any _build_* functions
+_t = _EXCEL_I18N['es']
+
 def generate_excel(scan_data: dict, evidence_items: list = None,
-                   evidence_dir: str = "/app/data/evidence") -> bytes:
+                   evidence_dir: str = "/app/data/evidence",
+                   lang: str = "es") -> bytes:
+    global _t
+    _lang = lang if lang in _EXCEL_I18N else "es"
+    _t = _EXCEL_I18N[_lang]
     meta    = scan_data.get("meta", {})
     stats   = scan_data.get("stats", {})
     modules = scan_data.get("modules", {})

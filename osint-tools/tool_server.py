@@ -16,41 +16,44 @@ import uvicorn
 app = FastAPI(title="OSINT Tools Service", docs_url=None, redoc_url=None)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-# ── Tool registry ─────────────────────────────────────────────────────────────
-# Each handler is imported from tools/
-from tools.t_subfinder    import run as run_subfinder
-from tools.t_amass        import run as run_amass
-from tools.t_theHarvester import run as run_theharvester
-from tools.t_whatweb      import run as run_whatweb
-from tools.t_wafw00f      import run as run_wafw00f
-from tools.t_dnsenum      import run as run_dnsenum
-from tools.t_dnstwist     import run as run_dnstwist
-from tools.t_whois        import run as run_whois
-from tools.t_httpx        import run as run_httpx
-from tools.t_shodan       import run as run_shodan
-from tools.t_virustotal   import run as run_virustotal
-from tools.t_securitytrails import run as run_securitytrails
-from tools.t_intelx       import run as run_intelx
-
-TOOL_MAP = {
-    "subfinder":      run_subfinder,
-    "amass":          run_amass,
-    "theHarvester":   run_theharvester,
-    "whatweb":        run_whatweb,
-    "wafw00f":        run_wafw00f,
-    "dnsenum":        run_dnsenum,
-    "dnstwist":       run_dnstwist,
-    "whois":          run_whois,
-    "httpx":          run_httpx,
-    "shodan":         run_shodan,
-    "virustotal":     run_virustotal,
-    "securitytrails": run_securitytrails,
-    "intelx":         run_intelx,
+# ── Tool registry — lazy loading so one broken tool never crashes the server ──
+_TOOL_MODULES = {
+    "subfinder":      "tools.t_subfinder",
+    "amass":          "tools.t_amass",
+    "theHarvester":   "tools.t_theHarvester",
+    "whatweb":        "tools.t_whatweb",
+    "wafw00f":        "tools.t_wafw00f",
+    "dnsenum":        "tools.t_dnsenum",
+    "dnstwist":       "tools.t_dnstwist",
+    "whois":          "tools.t_whois",
+    "httpx":          "tools.t_httpx",
+    "shodan":         "tools.t_shodan",
+    "virustotal":     "tools.t_virustotal",
+    "securitytrails": "tools.t_securitytrails",
+    "intelx":         "tools.t_intelx",
 }
 
-# Cache availability at startup
-_tool_available: dict[str, bool] = {}
+# Loaded handlers (populated at startup, missing = unavailable)
+TOOL_MAP: dict = {}
+_tool_available: dict = {}
 
+def _load_tools():
+    """Import each tool module individually — failures are isolated."""
+    for name, module_path in _TOOL_MODULES.items():
+        try:
+            import importlib
+            mod = importlib.import_module(module_path)
+            TOOL_MAP[name] = mod.run
+            _tool_available[name] = True
+            print(f"  ✔ {name}")
+        except Exception as e:
+            _tool_available[name] = False
+            print(f"  ✖ {name}: {e}")
+
+_load_tools()
+
+
+# ── Binary availability check ─────────────────────────────────────────────────
 async def _check_bin(cmd: list[str]) -> bool:
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -63,10 +66,11 @@ async def _check_bin(cmd: list[str]) -> bool:
 
 @app.on_event("startup")
 async def _startup():
-    checks = {
+    print("[tool_server] Checking binary availability...")
+    bin_checks = {
         "subfinder":    ["subfinder", "--version"],
         "amass":        ["amass", "enum", "-version"],
-        "theHarvester": ["theHarvester", "-h"],
+        "theHarvester": ["theHarvester", "--version"],
         "whatweb":      ["whatweb", "--version"],
         "wafw00f":      ["wafw00f", "--version"],
         "dnsenum":      ["dnsenum", "--version"],
@@ -74,23 +78,30 @@ async def _startup():
         "whois":        ["whois", "--version"],
         "httpx":        ["httpx", "-version"],
     }
-    for name, cmd in checks.items():
-        _tool_available[name] = await _check_bin(cmd)
-        status = "✔" if _tool_available[name] else "✖"
-        print(f"  {status} {name}")
-
-    # API tools availability (require keys)
+    for name, cmd in bin_checks.items():
+        # Only update if module loaded successfully
+        if _tool_available.get(name):
+            bin_ok = await _check_bin(cmd)
+            if not bin_ok:
+                print(f"  ⚠ {name}: module ok but binary not found")
+                # Keep True — some tools like theHarvester have non-standard --version
+        # API tools: availability determined at runtime by key presence
     for api_tool in ("shodan", "virustotal", "securitytrails", "intelx"):
-        _tool_available[api_tool] = True  # availability checked at runtime
+        _tool_available[api_tool] = _tool_available.get(api_tool, False)
 
-    print("[tool_server] Ready on :4000")
+    available = [k for k,v in _tool_available.items() if v]
+    print(f"[tool_server] Ready — {len(available)}/{len(_TOOL_MODULES)} tools available")
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "tools": _tool_available}
+    return {
+        "status": "ok",
+        "tools":  _tool_available,
+        "available_count": sum(1 for v in _tool_available.values() if v),
+    }
 
 @app.get("/tools")
 def list_tools():
@@ -99,40 +110,38 @@ def list_tools():
 @app.post("/run")
 async def run_tool(body: dict):
     """
-    body = { "tool": "subfinder", "args": { "domain": "example.com", ... }, "api_keys": {...} }
+    body = { "tool": "subfinder", "args": { "domain": "example.com" }, "api_keys": {...} }
     Returns { "ok": bool, "findings": [...], "raw": str, "elapsed": float, "error": str|null }
     """
     tool_name = body.get("tool", "").lower()
     args      = body.get("args", {})
     api_keys  = body.get("api_keys", {})
 
-    if tool_name not in TOOL_MAP:
+    if tool_name not in _TOOL_MODULES:
         raise HTTPException(400, f"Unknown tool: {tool_name}. Available: {list(TOOL_MAP)}")
+
+    if tool_name not in TOOL_MAP:
+        return {
+            "ok": False, "findings": [], "raw": "",
+            "elapsed": 0, "error": f"{tool_name} failed to load at startup — check container logs",
+        }
 
     t0 = time.time()
     try:
-        handler = TOOL_MAP[tool_name]
-        result  = await handler(args, api_keys)
+        result  = await TOOL_MAP[tool_name](args, api_keys)
         result["elapsed"] = round(time.time() - t0, 2)
         result.setdefault("ok", True)
         result.setdefault("error", None)
         return result
     except Exception as e:
         return {
-            "ok":       False,
-            "findings": [],
-            "raw":      traceback.format_exc(),
-            "elapsed":  round(time.time() - t0, 2),
-            "error":    str(e),
+            "ok": False, "findings": [], "raw": traceback.format_exc(),
+            "elapsed": round(time.time() - t0, 2), "error": str(e),
         }
 
 @app.post("/run/batch")
 async def run_batch(body: dict):
-    """
-    Run multiple tools in parallel.
-    body = { "tasks": [ {tool, args, api_keys}, ... ] }
-    Returns list of results in same order.
-    """
+    """Run up to 10 tools in parallel."""
     tasks = body.get("tasks", [])
     if not tasks or len(tasks) > 10:
         raise HTTPException(400, "1-10 tasks required")
@@ -141,8 +150,15 @@ async def run_batch(body: dict):
         return await run_tool(task)
 
     results = await asyncio.gather(*[_one(t) for t in tasks], return_exceptions=True)
-    return {"results": [r if not isinstance(r, Exception) else {"ok": False, "error": str(r)} for r in results]}
+    return {
+        "results": [
+            r if not isinstance(r, Exception) else {"ok": False, "error": str(r)}
+            for r in results
+        ]
+    }
 
+
+# ── Graceful shutdown ─────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     uvicorn.run("tool_server:app", host="0.0.0.0", port=4000, workers=1, log_level="info")

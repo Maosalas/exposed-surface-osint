@@ -139,12 +139,12 @@ async def import_scan(body: dict):
 
 # ── PDF ────────────────────────────────────────────────────────────────────
 @app.get("/api/scans/{scan_id}/pdf")
-async def pdf_from_id(scan_id: str):
+async def pdf_from_id(scan_id: str, lang: str = "es"):
     data = load_scan(scan_id)
     ev_items = _load_evidence_index(scan_id)
     for ev in ev_items:
         ev.setdefault("scan_id", scan_id)
-    try: pdf_bytes = generate_pdf(data, evidence_items=ev_items, evidence_dir=str(EVIDENCE_DIR))
+    try: pdf_bytes = generate_pdf(data, evidence_items=ev_items, evidence_dir=str(EVIDENCE_DIR), lang=lang)
     except Exception as e: raise HTTPException(500, str(e))
     company = data.get("meta",{}).get("company","report").replace(" ","_")
     date    = data.get("meta",{}).get("timestamp","")[:10]
@@ -432,7 +432,7 @@ from fastapi.responses import StreamingResponse
 import io
 
 @app.get("/api/scans/{scan_id}/xlsx")
-async def export_scan_xlsx(scan_id: str):
+async def export_scan_xlsx(scan_id: str, lang: str = "es"):
     """Export full scan as multi-sheet Excel workbook including evidence."""
     from excel_report import generate_excel
     data = load_scan(scan_id)
@@ -442,7 +442,7 @@ async def export_scan_xlsx(scan_id: str):
     for ev in ev_items:
         ev.setdefault("scan_id", scan_id)
     buf = generate_excel(data, evidence_items=ev_items,
-                         evidence_dir=str(EVIDENCE_DIR))
+                         evidence_dir=str(EVIDENCE_DIR), lang=lang)
     company  = data.get("meta", {}).get("company", scan_id).replace(" ", "_")
     date_str = (data.get("meta", {}).get("timestamp", "")[:10])
     fname = f"osint_{company}_{date_str}.xlsx"

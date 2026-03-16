@@ -200,9 +200,9 @@ input::placeholder{color:var(--t3)}
 .stico{font-size:clamp(11px,1.1vw,15px);flex-shrink:0;line-height:1}
 
 .mbody{border-top:1px solid var(--border)}
-.fwrap{padding:clamp(8px,0.9vh,14px) clamp(10px,1vw,16px)}
+.fwrap{padding:clamp(8px,0.9vh,14px) clamp(10px,1vw,16px);max-height:480px;overflow-y:auto;overflow-x:hidden}
 .stitle{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--t3);margin-bottom:clamp(5px,0.6vh,8px)}
-.finding{display:flex;align-items:flex-start;gap:clamp(6px,0.7vw,10px);background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:clamp(5px,0.6vh,8px) clamp(8px,0.8vw,12px);margin-bottom:4px;animation:slin .2s}
+.finding{display:flex;align-items:flex-start;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px 14px;margin-bottom:6px;animation:slin .2s}
 .finding.critical{border-color:rgba(255,23,68,.2);background:rgba(255,23,68,.04)}
 .finding.high{border-color:rgba(255,145,0,.15)}
 @keyframes slin{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:none}}
@@ -449,7 +449,7 @@ tr:hover td{background:rgba(0,212,255,.012)}
 #settings-modal{background:var(--bg1);border:1px solid var(--border);border-radius:7px;width:clamp(320px,88vw,680px);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
 .sm-hdr{padding:clamp(12px,1.4vh,18px) clamp(16px,1.6vw,24px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
 .sm-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-md);color:var(--c-cyan)}
-.sm-subtitle{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);color:var(--t3);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.sm-subtitle{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);color:var(--t3);letter-spacing:1.5px;margin-top:2px}
 .sm-close{background:none;border:1px solid var(--border);border-radius:3px;color:var(--t3);cursor:pointer;font-size:clamp(12px,1.2vw,16px);padding:3px 9px;transition:all .15s}
 .sm-close:hover{color:var(--c-red);border-color:rgba(255,23,68,.3)}
 .sm-body{overflow-y:auto;padding:clamp(14px,1.6vh,22px) clamp(16px,1.6vw,24px);flex:1;display:flex;flex-direction:column;gap:clamp(10px,1.2vh,16px)}
@@ -757,7 +757,7 @@ const LANGS = {
     confirm_ok:    'ELIMINAR',
     // Settings
     settings_title:'&#9881; AJUSTES — API KEYS',
-    settings_sub:  'Las keys se guardan encriptadas en el contenedor',
+    settings_sub:  'AES-128 · PBKDF2-SHA256 · 600k iteraciones · Sin texto plano en disco',
     settings_save: 'GUARDAR',
     settings_ph_configured: '••••••••••••••••••• (guardada)',
     settings_ph_empty:      'Pega tu API key aquí',
@@ -859,7 +859,7 @@ const LANGS = {
     confirm_cancel:'CANCEL',
     confirm_ok:    'DELETE',
     settings_title:'&#9881; SETTINGS — API KEYS',
-    settings_sub:  'Keys are stored encrypted in the container',
+    settings_sub:  'AES-128 · PBKDF2-SHA256 · 600k iterations · No plaintext on disk',
     settings_save: 'SAVE',
     settings_ph_configured: '••••••••••••••••••• (saved)',
     settings_ph_empty:      'Paste your API key here',
@@ -1339,7 +1339,7 @@ function bodyHTML(id,data){
     if(id==='data_leak'){
       const dangerTypes=['passwords','password','credentials','credit cards','financial','ssn','social security'];
       const sevColors={critical:'var(--c-red)',high:'var(--c-orange)',medium:'var(--c-yellow)',low:'var(--c-green)',info:'var(--c-blue)'};
-      toRender.forEach(f=>{
+      toRender.forEach((f,fi)=>{
         const sev=f.severity||'info';
         const col=sevColors[sev]||sevColors.info;
         const records=f.records_fmt||(f.records?Number(f.records).toLocaleString():null);
@@ -1589,7 +1589,7 @@ document.getElementById('detail-overlay').addEventListener('click',e=>{ if(e.tar
 async function downloadPDF(scanId){
   toast(t('toast_pdf_gen'));
   try{
-    const res=await fetch(`/api/scans/${scanId}/pdf`);
+    const res=await fetch(`/api/scans/${scanId}/pdf?lang=${LANG}`);
     if(!res.ok) throw new Error(await res.text());
     const blob=await res.blob();
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
@@ -2030,7 +2030,7 @@ async function _uploadFindingFiles(files, modId, fid, findingRef){
 async function downloadXLSX(scanId){
   toast('Generando Excel...','info');
   try{
-    const res=await fetch(`/api/scans/${scanId}/xlsx`);
+    const res=await fetch(`/api/scans/${scanId}/xlsx?lang=${LANG}`);
     if(!res.ok) throw new Error(await res.text());
     const blob=await res.blob();
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
@@ -2332,24 +2332,27 @@ async function loadAuditLog(){
     }).join('');
   }catch(ex){console.warn('audit',ex);}
 }
-async function loadSettingsKeys(){
+async function loadSettingsKeys(silent=false){
   const body=document.getElementById('settings-body');
-  body.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px"><span class="spin"></span><span style="font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3)">${t('settings_loading')}</span></div>`;
+  if(!silent&&!body.querySelector('.key-card')){
+    body.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px"><span class="spin"></span><span style="font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3)">${t('settings_loading')}</span></div>`;
+  }
   try{
     const res=await fetch('/api/keys');
     const services=await res.json();
     renderSettingsKeys(services);
   }catch(e){
-    body.innerHTML=`<div style="color:var(--c-red);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm)">Error cargando ajustes: ${esc(e.message)}</div>`;
+    if(!silent) body.innerHTML=`<div style="color:var(--c-red);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm)">Error: ${esc(e.message)}</div>`;
   }
 }
 
 function renderSettingsKeys(services){
   const body=document.getElementById('settings-body'); body.innerHTML='';
-  const banner=document.createElement('div');
-  banner.style.cssText=`background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:4px;padding:10px 14px;font-size:var(--fs-body);color:var(--t2);line-height:1.6`;
-  banner.innerHTML=t('settings_banner');
-  body.appendChild(banner);
+  // Info box
+  const infoBox=document.createElement('div');
+  infoBox.style.cssText='background:rgba(0,230,118,.05);border:1px solid rgba(0,230,118,.2);border-radius:4px;padding:10px 14px;margin-bottom:12px;font-size:12px;line-height:1.6';
+  infoBox.innerHTML=`<span style="color:var(--c-green);font-family:'Share Tech Mono',monospace">🔒</span> <span style="color:var(--t2)">API keys are stored <strong style="color:var(--t1)">AES-128 encrypted</strong> in the Docker container.</span><br><span style="color:var(--t3);font-size:11px">Never exposed in UI or reports. All optional — each enables additional recon features.</span>`;
+  body.appendChild(infoBox);
   for(const svc of services){
     const card=document.createElement('div');
     card.className=`key-card${svc.configured?' configured':''}`;
@@ -2367,7 +2370,7 @@ function renderSettingsKeys(services){
         return `<span class="key-card-status ok" title="${title}">${label}</span>`;
       })()
       :`<span class="key-card-status none">${t('settings_not_configured')}</span>`;
-    card.innerHTML=`<div class="key-card-top"><span class="key-card-name">${esc(svc.label)}</span>${svc.sensitive?'<span class="key-sensitive-badge" title="Key sensible — cifrada con PBKDF2+AES">🔐</span>':''} ${statusLabel}</div><div class="key-card-help">${esc(svc.help)}<br><a href="${esc(svc.url)}" target="_blank" rel="noopener">${t('settings_get_key')}</a></div><div class="key-input-row"><input type="password" id="kinput-${esc(svc.id)}" placeholder="${svc.configured?t('settings_ph_configured'):t('settings_ph_empty')}" autocomplete="off"><button class="btn-save-key" onclick="saveKey('${esc(svc.id)}')">${t('settings_save')}</button>${svc.configured&&svc.source!=='env'?`<button class="btn-del-key" onclick="deleteKey('${esc(svc.id)}')" title="Eliminar key">&#x2715;</button>`:''}</div>`;
+    card.innerHTML=`<div class="key-card-top"><span class="key-card-name">${esc(svc.label)}</span>${svc.sensitive?'<span class="key-sensitive-badge" title="Datos sensibles — cifrada con PBKDF2+AES-128">🔐</span>':''} ${statusLabel}</div><div class="key-card-help">${esc(svc.help)}<br><a href="${esc(svc.url)}" target="_blank" rel="noopener">${t('settings_get_key')}</a></div><div class="key-input-row"><input type="password" id="kinput-${esc(svc.id)}" placeholder="${svc.configured?t('settings_ph_configured'):t('settings_ph_empty')}" autocomplete="off"><button class="btn-save-key" onclick="saveKey('${esc(svc.id)}')">${t('settings_save')}</button>${svc.configured&&svc.source!=='env'?`<button class="btn-del-key" onclick="deleteKey('${esc(svc.id)}')" title="Eliminar key">&#x2715;</button>`:''}</div>`;
     body.appendChild(card);
   }
 }
@@ -2379,14 +2382,40 @@ async function saveKey(serviceId){
   try{
     const res=await fetch(`/api/keys/${serviceId}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value})});
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    input.value=''; toast(t('toast_key_ok'),'ok'); await loadSettingsKeys();
+    input.value='';
+    // Optimistic UI — show CIFRADA immediately, no flash
+    const card=input.closest('.key-card');
+    if(card){
+      card.classList.add('configured');
+      const badge=card.querySelector('.key-card-status');
+      if(badge){ badge.className='key-card-status ok'; badge.textContent='🔒 CIFRADA'; badge.title='AES-128 + PBKDF2-SHA256 (600k iter)'; }
+      input.placeholder=t('settings_ph_configured');
+      // Add delete button if not present
+      if(!card.querySelector('.btn-del-key')){
+        const row=card.querySelector('.key-input-row');
+        if(row){ const b=document.createElement('button'); b.className='btn-del-key'; b.title='Eliminar key'; b.innerHTML='&#x2715;'; b.onclick=()=>deleteKey(serviceId); row.appendChild(b); }
+      }
+    }
+    toast(t('toast_key_ok'),'ok');
+    setTimeout(()=>loadSettingsKeys(true), 600);
   }catch(e){ toast(t('toast_key_err')+e.message,'err'); }
 }
 
 async function deleteKey(serviceId){
   try{
     await fetch(`/api/keys/${serviceId}`,{method:'DELETE'});
-    toast(t('toast_key_del'),'ok'); await loadSettingsKeys();
+    // Optimistic UI — show NOT CONFIGURED immediately
+    const input=document.getElementById(`kinput-${serviceId}`);
+    const card=input?.closest('.key-card');
+    if(card){
+      card.classList.remove('configured');
+      const badge=card.querySelector('.key-card-status');
+      if(badge){ badge.className='key-card-status none'; badge.textContent=t('settings_not_configured'); badge.title=''; }
+      if(input) input.placeholder=t('settings_ph_empty');
+      card.querySelector('.btn-del-key')?.remove();
+    }
+    toast(t('toast_key_del'),'ok');
+    setTimeout(()=>loadSettingsKeys(true), 600);
   }catch(e){ toast('Error: '+e.message,'err'); }
 }
 </script>

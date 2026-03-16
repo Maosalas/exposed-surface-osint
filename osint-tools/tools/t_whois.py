@@ -1,4 +1,3 @@
-import whois as pywhois
 import asyncio
 from ._base import run_cmd
 
@@ -11,8 +10,9 @@ async def run(args: dict, api_keys: dict) -> dict:
     whois_data = {}
     raw = ""
 
-    # Try python-whois first (structured)
+    # Try python-whois (structured) — imported lazily to avoid startup crash
     try:
+        import whois as pywhois
         loop = asyncio.get_event_loop()
         w = await loop.run_in_executor(None, lambda: pywhois.whois(domain))
         if w:
@@ -21,20 +21,20 @@ async def run(args: dict, api_keys: dict) -> dict:
                 return str(v) if v else ""
 
             whois_data = {
-                "domain":     domain,
-                "registrar":  _str(w.registrar),
-                "registrant": _str(w.get("registrant_name") or w.get("org") or ""),
-                "country":    _str(w.country),
-                "emails":     list(set(w.emails or [])),
-                "created":    _str(w.creation_date),
-                "updated":    _str(w.updated_date),
-                "expiry":     _str(w.expiration_date),
+                "domain":      domain,
+                "registrar":   _str(w.registrar),
+                "registrant":  _str(w.get("registrant_name") or w.get("org") or ""),
+                "country":     _str(w.country),
+                "emails":      list(set(w.emails or [])),
+                "created":     _str(w.creation_date),
+                "updated":     _str(w.updated_date),
+                "expiry":      _str(w.expiration_date),
                 "nameservers": [str(ns).lower() for ns in (w.name_servers or [])],
-                "status":     _str(w.status),
+                "status":      _str(w.status),
             }
             raw = str(w.text or "")
 
-            # Flag if domain expires soon
+            # Flag expiring domains
             from datetime import datetime, timezone
             if w.expiration_date:
                 exp = w.expiration_date[0] if isinstance(w.expiration_date, list) else w.expiration_date
@@ -51,7 +51,6 @@ async def run(args: dict, api_keys: dict) -> dict:
                             "note": f"Domain expires in {days_left} days",
                         })
 
-            # Expose emails found in WHOIS
             for email in whois_data.get("emails", []):
                 findings.append({
                     "type": "whois_email",
@@ -60,18 +59,19 @@ async def run(args: dict, api_keys: dict) -> dict:
                     "source": "whois",
                     "severity": "info",
                 })
-
+    except ImportError:
+        raw = "python-whois not available, using CLI only"
     except Exception as e:
         raw = f"python-whois error: {e}"
 
-    # Also run CLI whois for raw evidence
+    # CLI whois fallback (always run for raw evidence)
     cli_res = await run_cmd(["whois", domain], timeout=20)
     if cli_res["stdout"]:
         raw = cli_res["stdout"]
 
     return {
-        "ok":        bool(whois_data),
-        "findings":  findings,
-        "raw":       raw[:20000],
+        "ok":         bool(whois_data) or bool(raw),
+        "findings":   findings,
+        "raw":        raw[:20000],
         "whois_data": whois_data,
     }
