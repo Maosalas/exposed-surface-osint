@@ -21,7 +21,28 @@ const requestCounts = new Map(); // IP -> [timestamps]
 async function getBrowser() {
   if (!browser || !browser.connected) {
     browser = await puppeteer.launch({
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
+      // Official puppeteer image provides the correct executable path
+      // Detect Chrome path: env var > official image path > system chromium
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
+        || (()=>{ const fs=require('fs');
+            const paths=[
+              '/home/pptruser/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
+              '/usr/bin/google-chrome-stable',
+              '/usr/bin/google-chrome',
+              '/usr/bin/chromium',
+              '/usr/bin/chromium-browser',
+            ];
+            for(const p of paths){
+              // Handle glob pattern
+              if(p.includes('*')){
+                try{
+                  const g=require('child_process').execSync(`ls ${p} 2>/dev/null | head -1`).toString().trim();
+                  if(g && fs.existsSync(g)) return g;
+                }catch(e){}
+              } else if(fs.existsSync(p)) return p;
+            }
+            return undefined;
+          })(),
       headless: "new",
       args: [
         "--no-sandbox",
@@ -40,15 +61,9 @@ async function getBrowser() {
         "--mute-audio",
         "--disable-notifications",
         "--disable-permissions-api",
-        // Fix: disable crashpad reporter (causes --database error in containers)
-        "--disable-crash-reporter",
-        "--disable-crashpad",
-        "--no-report-upload",
-        // Network isolation
-        "--disable-features=NetworkService,VizDisplayCompositor",
       ],
       ignoreHTTPSErrors: true,
-      timeout: 10000,
+      timeout: 15000,
     });
     console.log("[browser] Launched Chromium");
   }
@@ -232,7 +247,6 @@ process.on("SIGINT", async () => {
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`[osint-puppeteer] Screenshot service running on :${PORT}`);
-  console.log(`[osint-puppeteer] Chromium: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
   // Pre-warm browser
   getBrowser().catch(err => console.error("[browser] Pre-warm failed:", err.message));
 });

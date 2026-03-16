@@ -8,24 +8,23 @@ services:
     build:
       context: ./puppeteer
       dockerfile: Dockerfile
-    image: osint-puppeteer:v1
+    image: osint-puppeteer:v2
     container_name: osint-puppeteer
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     cap_add:
-      - SYS_ADMIN          # required by Chromium sandboxing
+      - SYS_ADMIN          # required by Chromium sandboxing in containers
     environment:
       - NODE_ENV=production
-      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
     networks:
       - osint-internal     # ← ONLY internal, never traefik-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
       interval: 20s
       timeout: 10s
       retries: 3
-      start_period: 25s
+      start_period: 30s
 
   # ── OSINT CLI Tools Service ───────────────────────────────────────────────
   # Runs: amass, subfinder, theHarvester, whatweb, wafw00f, dnsenum, dnstwist
