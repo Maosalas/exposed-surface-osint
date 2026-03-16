@@ -1,0 +1,137 @@
+version: "3.9"
+
+# ── OSINT Surface Analyzer — Cloudflare Tunnel ────────────────────────────────
+# HTTPS gratuito sin dominio propio ni puertos abiertos.
+# Cloudflare asigna una URL pública del tipo: https://xxxx-xxxx.trycloudflare.com
+#
+# Prerequisito: cuenta gratuita en https://dash.cloudflare.com
+#
+# Opción A — Tunnel temporal (sin cuenta, URL cambia cada reinicio):
+#   Sin TOKEN, cloudflared genera una URL aleatoria automáticamente.
+#   Útil para demos o pruebas rápidas.
+#
+# Opción B — Tunnel permanente (recomendado):
+#   1. Ir a https://dash.cloudflare.com → Zero Trust → Networks → Tunnels
+#   2. Crear tunnel → copiar el TOKEN
+#   3. Pegarlo en .env como CLOUDFLARE_TUNNEL_TOKEN=tu_token
+#   4. En el dashboard configurar la ruta: http://osint-analyzer:8080
+#
+# Uso:
+#   docker compose -f docker-compose.cf-tunnel.yml up -d --build
+
+services:
+
+  osint-puppeteer:
+    build:
+      context: ./puppeteer
+      dockerfile: Dockerfile
+    image: osint-puppeteer:v1
+    container_name: osint-puppeteer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      - NODE_ENV=production
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    networks:
+      - osint-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+
+  osint-tools:
+    build:
+      context: ./osint-tools
+      dockerfile: Dockerfile
+    image: osint-tools:v1
+    container_name: osint-tools
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - osint-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  osint-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: osint-surface-analyzer:latest
+    container_name: osint-analyzer
+    # Sin ports: — cloudflared accede internamente por la red cf-net
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PUPPETEER_SERVICE_URL=http://osint-puppeteer:3000
+      - TOOLS_SERVICE_URL=http://osint-tools:4000
+      - OSINT_DEPLOY_SECRET=${OSINT_DEPLOY_SECRET:-osint-default-changeme}
+    depends_on:
+      osint-puppeteer:
+        condition: service_healthy
+      osint-tools:
+        condition: service_healthy
+    volumes:
+      - osint-results:/app/results
+      - osint-scans:/app/data/scans
+      - osint-evidence:/app/data/evidence
+      - osint-keys:/app/data/keys
+    networks:
+      - osint-internal
+      - cf-net            # ← solo para que cloudflared pueda alcanzarlo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Cloudflare Tunnel ─────────────────────────────────────────────────────
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: osint-cloudflared
+    restart: unless-stopped
+    networks:
+      - cf-net
+    command: >
+      tunnel
+      --no-autoupdate
+      ${CLOUDFLARE_TUNNEL_TOKEN:+--token ${CLOUDFLARE_TUNNEL_TOKEN}}
+      ${CLOUDFLARE_TUNNEL_TOKEN:-run}
+      ${CLOUDFLARE_TUNNEL_TOKEN:+}
+      ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    # ↑ Si hay TOKEN: usa tunnel permanente con configuración del dashboard
+    # ↑ Si NO hay TOKEN: genera URL temporal automáticamente (modo quick)
+    environment:
+      - TUNNEL_URL=http://osint-analyzer:8080
+    depends_on:
+      - osint-analyzer
+
+volumes:
+  osint-results:
+  osint-scans:
+  osint-evidence:
+  osint-keys:
+
+networks:
+  osint-internal:
+    driver: bridge
+  cf-net:
+    driver: bridge   # red separada entre cloudflared y el analyzer

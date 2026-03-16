@@ -1,0 +1,125 @@
+version: "3.9"
+
+# ── OSINT Surface Analyzer — Ngrok Tunnel ─────────────────────────────────────
+# URL pública temporal HTTPS. Útil para demos o acceso remoto rápido.
+# La URL cambia con cada reinicio (a menos que tengas cuenta paga con dominio fijo).
+#
+# Prerequisito:
+#   1. Registrarse en https://ngrok.com (gratis)
+#   2. Copiar el Auth Token desde https://dashboard.ngrok.com/get-started/your-authtoken
+#   3. Agregar en .env: NGROK_AUTHTOKEN=tu_token
+#
+# Uso:
+#   docker compose -f docker-compose.ngrok.yml up -d --build
+#
+# La URL pública se muestra en los logs de ngrok:
+#   docker logs osint-ngrok
+#   → Forwarding: https://xxxx-xxxx.ngrok-free.app → http://osint-analyzer:8080
+
+services:
+
+  osint-puppeteer:
+    build:
+      context: ./puppeteer
+      dockerfile: Dockerfile
+    image: osint-puppeteer:v1
+    container_name: osint-puppeteer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      - NODE_ENV=production
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    networks:
+      - osint-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+
+  osint-tools:
+    build:
+      context: ./osint-tools
+      dockerfile: Dockerfile
+    image: osint-tools:v1
+    container_name: osint-tools
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - osint-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  osint-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: osint-surface-analyzer:latest
+    container_name: osint-analyzer
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PUPPETEER_SERVICE_URL=http://osint-puppeteer:3000
+      - TOOLS_SERVICE_URL=http://osint-tools:4000
+      - OSINT_DEPLOY_SECRET=${OSINT_DEPLOY_SECRET:-osint-default-changeme}
+    depends_on:
+      osint-puppeteer:
+        condition: service_healthy
+      osint-tools:
+        condition: service_healthy
+    volumes:
+      - osint-results:/app/results
+      - osint-scans:/app/data/scans
+      - osint-evidence:/app/data/evidence
+      - osint-keys:/app/data/keys
+    networks:
+      - osint-internal
+      - ngrok-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Ngrok tunnel ──────────────────────────────────────────────────────────
+  osint-ngrok:
+    image: ngrok/ngrok:latest
+    container_name: osint-ngrok
+    restart: unless-stopped
+    networks:
+      - ngrok-net
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: http osint-analyzer:8080 --log=stdout
+    depends_on:
+      - osint-analyzer
+
+volumes:
+  osint-results:
+  osint-scans:
+  osint-evidence:
+  osint-keys:
+
+networks:
+  osint-internal:
+    driver: bridge
+  ngrok-net:
+    driver: bridge

@@ -1,0 +1,139 @@
+version: "3.9"
+
+services:
+
+  # ── Internal Puppeteer Screenshot Service ─────────────────────────────────
+  # Isolated: only on osint-internal network. No Traefik, no external access.
+  osint-puppeteer:
+    build:
+      context: ./puppeteer
+      dockerfile: Dockerfile
+    image: osint-puppeteer:v1
+    container_name: osint-puppeteer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - SYS_ADMIN          # required by Chromium sandboxing
+    environment:
+      - NODE_ENV=production
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    networks:
+      - osint-internal     # ← ONLY internal, never traefik-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+
+  # ── OSINT CLI Tools Service ───────────────────────────────────────────────
+  # Runs: amass, subfinder, theHarvester, whatweb, wafw00f, dnsenum, dnstwist
+  # + Shodan / VirusTotal / SecurityTrails / IntelX API integrations
+  # Internal only — never exposed outside osint-internal.
+  osint-tools:
+    build:
+      context: ./osint-tools
+      dockerfile: Dockerfile
+    image: osint-tools:v1
+    container_name: osint-tools
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - osint-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  # ── OSINT Backend + Frontend ──────────────────────────────────────────────
+  osint-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: osint-surface-analyzer:latest
+    container_name: osint-analyzer
+    expose:
+      - "8080"
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PUPPETEER_SERVICE_URL=http://osint-puppeteer:3000
+      - TOOLS_SERVICE_URL=http://osint-tools:4000
+      # Deploy secret: used to derive the encryption key for API keys.
+      # Set this ONCE and never change it (rotating it invalidates stored keys).
+      # Generate with: openssl rand -hex 32
+      - OSINT_DEPLOY_SECRET=${OSINT_DEPLOY_SECRET:-osint-default-changeme}
+    depends_on:
+      osint-puppeteer:
+        condition: service_healthy
+      osint-tools:
+        condition: service_healthy
+    volumes:
+      - osint-results:/app/results
+      - osint-scans:/app/data/scans
+      - osint-evidence:/app/data/evidence
+      - osint-keys:/app/data/keys
+    networks:
+      - traefik-net
+      - osint-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+
+      # ── Mismo patrón que n8n ──────────────────────────────────────
+      - "traefik.http.routers.osint.rule=Host(`osint.yourdomain.com`)"
+      - "traefik.http.routers.osint.entrypoints=web,websecure"
+      - "traefik.http.routers.osint.middlewares=osint@docker"
+      - "traefik.http.routers.osint.tls=true"
+      - "traefik.http.routers.osint.tls.certresolver=cf"
+
+      # ── Security headers middleware ───────────────────────────────
+      - "traefik.http.middlewares.osint.headers.SSLHost=yourdomain.com"
+      - "traefik.http.middlewares.osint.headers.SSLRedirect=true"
+      - "traefik.http.middlewares.osint.headers.STSSeconds=315360000"
+      - "traefik.http.middlewares.osint.headers.STSIncludeSubdomains=true"
+      - "traefik.http.middlewares.osint.headers.STSPreload=true"
+      - "traefik.http.middlewares.osint.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.osint.headers.browserXSSFilter=true"
+      - "traefik.http.middlewares.osint.headers.contentTypeNosniff=true"
+
+      # ── WebSocket support ─────────────────────────────────────────
+      - "traefik.http.middlewares.osint.headers.customrequestheaders.X-Forwarded-Proto=https"
+
+      # ── Servicio ──────────────────────────────────────────────────
+      - "traefik.http.services.osint.loadbalancer.server.port=8080"
+
+volumes:
+  osint-results:
+    driver: local
+  osint-scans:
+    driver: local
+  osint-evidence:
+    driver: local
+  osint-keys:
+    driver: local
+
+networks:
+  traefik-net:
+    external: true
+    name: traefik
+  osint-internal:
+    driver: bridge

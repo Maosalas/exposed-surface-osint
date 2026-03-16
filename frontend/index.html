@@ -1,0 +1,2394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Análisis de Información Expuesta</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#05080d;--bg1:#090e15;--bg2:#0c1420;--bg3:#0f1a28;--bg4:#1a2535;
+  --c-cyan:#00d4ff;--c-green:#00e676;--c-red:#ff1744;--c-orange:#ff9100;
+  --c-yellow:#ffd740;--c-blue:#448aff;--c-purple:#b388ff;
+  --t1:#dde8f5;--t2:#8aabb5;--t3:#3a5570;--border:#0f2035;
+
+  --hdr-h:       clamp(48px,5.5vh,64px);
+  --sidebar-w:   clamp(260px,22vw,380px);
+  --pad-card:    clamp(10px,1.2vw,18px);
+  --pad-results: clamp(10px,1.2vw,20px);
+  --gap-cards:   clamp(5px,0.6vw,10px);
+
+  --fs-mono-xs:  clamp(9px,0.78vw,11px);
+  --fs-mono-sm:  clamp(10px,0.88vw,13px);
+  --fs-mono-md:  clamp(12px,1.05vw,15px);
+  --fs-mono-lg:  clamp(13px,1.2vw,17px);
+  --fs-raj-xs:   clamp(9px,0.8vw,11px);
+  --fs-raj-sm:   clamp(11px,0.95vw,14px);
+  --fs-raj-md:   clamp(13px,1.15vw,16px);
+  --fs-raj-lg:   clamp(15px,1.35vw,19px);
+  --fs-body:     clamp(11px,0.95vw,14px);
+
+  --mibox-size:  clamp(30px,2.8vw,42px);
+  --stat-n-size: clamp(15px,1.6vw,22px);
+  --logo-gem:    clamp(20px,2vw,30px);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg0);color:var(--t1);font-family:'Inter',sans-serif;height:100vh;overflow:hidden}
+
+/* ── HEADER ── */
+#hdr{position:sticky;top:0;z-index:300;height:var(--hdr-h);background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 clamp(12px,1.5vw,28px);flex-shrink:0;gap:8px}
+.logo{display:flex;align-items:center;gap:clamp(7px,0.8vw,12px)}
+.logo-gem{width:var(--logo-gem);height:var(--logo-gem);flex-shrink:0;background:linear-gradient(135deg,var(--c-cyan),var(--c-green));clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);animation:gem 3s ease-in-out infinite}
+@keyframes gem{0%,100%{filter:drop-shadow(0 0 4px var(--c-cyan))}50%{filter:drop-shadow(0 0 14px var(--c-cyan))}}
+.logo-name{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-lg);color:var(--c-cyan);letter-spacing:clamp(1px,0.3vw,4px)}
+.logo-ver{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);color:var(--t3);letter-spacing:2px;text-transform:uppercase}
+.hdr-tabs{display:flex;gap:2px;flex-shrink:0}
+.htab{background:none;border:1px solid transparent;border-radius:4px;color:var(--t3);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);font-weight:700;letter-spacing:2px;padding:clamp(4px,0.5vh,8px) clamp(8px,1vw,16px);text-transform:uppercase;transition:all .2s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.htab:hover{color:var(--t2);border-color:var(--border)}
+.htab.active{color:var(--c-cyan);border-color:rgba(0,212,255,.35);background:rgba(0,212,255,.06)}
+.htab-badge{background:var(--c-red);color:white;border-radius:10px;padding:1px 6px;font-size:var(--fs-mono-xs);line-height:1.4}
+.hdr-right{display:flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);flex-shrink:0}
+.pulse{width:clamp(4px,0.4vw,6px);height:clamp(4px,0.4vw,6px);border-radius:50%;background:var(--c-green);animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── LAYOUT ── */
+#shell{display:grid;grid-template-columns:var(--sidebar-w) 1fr;height:calc(100vh - var(--hdr-h));overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{background:var(--bg1);border-right:1px solid var(--border);overflow-y:auto;padding:clamp(10px,1vh,18px) clamp(8px,0.8vw,14px);display:flex;flex-direction:column;gap:clamp(8px,0.9vh,14px)}
+#sidebar::-webkit-scrollbar{width:3px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border)}
+
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:var(--pad-card)}
+.sc-ttl{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--c-cyan);margin-bottom:clamp(8px,0.9vh,14px)}
+.sc-ttl::before{content:'// ';color:var(--t3);font-family:'Share Tech Mono',monospace}
+
+.flbl{display:block;font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t2);margin-bottom:4px}
+.flbl.mt{margin-top:clamp(8px,0.9vh,14px)}
+input[type=text]{width:100%;background:var(--bg0);border:1px solid var(--border);border-radius:3px;color:var(--t1);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm);padding:clamp(5px,0.6vh,9px) clamp(7px,0.7vw,12px);outline:none;transition:border-color .2s,box-shadow .2s}
+input[type=text]:focus{border-color:var(--c-cyan);box-shadow:0 0 0 2px rgba(0,212,255,.08)}
+input::placeholder{color:var(--t3)}
+.add-row{display:flex;gap:4px}
+.add-row input{flex:1}
+.btn-add{background:rgba(0,212,255,.08);border:1px solid var(--c-cyan);border-radius:3px;color:var(--c-cyan);cursor:pointer;font-size:clamp(14px,1.4vw,20px);line-height:1;padding:0 clamp(8px,0.9vw,14px);transition:background .2s}
+.btn-add:hover{background:rgba(0,212,255,.18)}
+.hint{font-size:var(--fs-mono-xs);color:var(--t3);font-family:'Share Tech Mono',monospace;margin-top:3px}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.tag{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.22);border-radius:3px;padding:clamp(2px,0.25vh,4px) clamp(6px,0.6vw,10px);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm);color:var(--c-cyan);display:flex;align-items:center;gap:4px;animation:pop .2s}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.tag-x{background:none;border:none;cursor:pointer;color:var(--t3);font-size:clamp(11px,1vw,14px);line-height:1;padding:0;transition:color .15s}
+.tag-x:hover{color:var(--c-red)}
+
+.btn-all{width:100%;background:none;border:1px dashed var(--t3);border-radius:3px;color:var(--t3);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:clamp(5px,0.6vh,8px);margin-bottom:8px;transition:all .2s}
+.btn-all:hover{border-color:var(--c-cyan);color:var(--c-cyan)}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(3px,0.35vw,6px)}
+.mitem{display:flex;align-items:center;gap:clamp(4px,0.5vw,8px);background:var(--bg0);border:1px solid var(--border);border-radius:3px;padding:clamp(5px,0.55vh,8px) clamp(5px,0.55vw,9px);cursor:pointer;transition:all .15s;user-select:none}
+.mitem:hover{border-color:rgba(0,212,255,.3);background:rgba(0,212,255,.02)}
+.mitem.on{border-color:rgba(0,212,255,.4);background:rgba(0,212,255,.05)}
+.mitem input[type=checkbox]{accent-color:var(--c-cyan);width:clamp(10px,0.9vw,13px);height:clamp(10px,0.9vw,13px);cursor:pointer;flex-shrink:0}
+.mitem-ic{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);flex-shrink:0;min-width:clamp(22px,2.2vw,32px);text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:2px 3px}
+.mitem.on .mitem-ic{color:var(--c-cyan);border-color:rgba(0,212,255,.25)}
+.mitem-lb{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mitem.on .mitem-lb{color:var(--c-cyan)}
+
+.btn-scan{width:100%;padding:clamp(9px,1vh,14px);background:linear-gradient(135deg,rgba(0,212,255,.09),rgba(0,230,118,.06));border:1px solid var(--c-cyan);border-radius:4px;color:var(--c-cyan);cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm);letter-spacing:clamp(2px,0.4vw,5px);text-transform:uppercase;transition:all .3s;position:relative;overflow:hidden}
+.btn-scan::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,212,255,.1),transparent);transition:left .4s}
+.btn-scan:hover::after{left:100%}
+.btn-scan:hover{box-shadow:0 0 20px rgba(0,212,255,.18);transform:translateY(-1px)}
+.btn-scan:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.btn-scan.scanning{border-color:var(--c-yellow);color:var(--c-yellow);animation:sglow 1.2s infinite}
+@keyframes sglow{0%,100%{box-shadow:0 0 5px rgba(255,215,64,.12)}50%{box-shadow:0 0 18px rgba(255,215,64,.4)}}
+
+/* ── GLOBAL PROGRESS BAR ── */
+.gprog-wrap{margin-top:8px}
+.gprog-info{display:flex;justify-content:space-between;align-items:center;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t2);margin-bottom:5px}
+.gprog-count{color:var(--c-cyan)}
+.gprog-pct{color:var(--t1);font-size:var(--fs-mono-sm)}
+.gprog-track{height:3px;background:var(--border);border-radius:3px;overflow:hidden;position:relative}
+.gprog-fill{height:100%;background:linear-gradient(90deg,var(--c-cyan),var(--c-green));border-radius:3px;transition:width .5s ease;box-shadow:0 0 6px var(--c-cyan)}
+.gprog-current{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── MAIN AREA ── */
+#main{overflow:hidden;display:flex;flex-direction:column}
+
+/* ── SCAN VIEW ── */
+#scan-view{display:flex;flex-direction:column;height:100%;overflow:hidden}
+#results{overflow-y:auto;padding:var(--pad-results);display:flex;flex-direction:column;gap:var(--gap-cards);flex:1}
+#results::-webkit-scrollbar{width:4px}
+#results::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:clamp(8px,1.2vh,16px);opacity:.28;user-select:none;text-align:center}
+.welcome-hex{width:clamp(44px,5vw,72px);height:clamp(44px,5vw,72px);background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);font-family:'Share Tech Mono',monospace;font-size:clamp(14px,1.8vw,24px);color:var(--t3)}
+.welcome h2{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-md);color:var(--t2);letter-spacing:4px;text-transform:uppercase}
+.welcome p{font-size:var(--fs-body);color:var(--t3);max-width:260px;line-height:1.7}
+
+.scan-hdr{background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:clamp(9px,1vh,14px) clamp(12px,1.2vw,20px);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.scan-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-md);color:var(--c-cyan)}
+.stats-row{display:flex;gap:clamp(10px,1.2vw,20px)}
+.stat{text-align:center}
+.stat-n{font-family:'Share Tech Mono',monospace;font-size:var(--stat-n-size);line-height:1}
+.stat-l{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-top:2px}
+.nc{color:var(--c-red)}.nh{color:var(--c-orange)}.nm{color:var(--c-yellow)}.nl{color:var(--c-green)}.ni{color:var(--c-blue)}
+
+.hdr-actions{display:flex;gap:5px}
+.btn-sm{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.25);border-radius:3px;color:var(--c-cyan);cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);letter-spacing:1px;padding:clamp(4px,0.5vh,7px) clamp(8px,0.8vw,13px);text-transform:uppercase;transition:all .2s;white-space:nowrap}
+.btn-sm:hover{background:rgba(0,212,255,.14);box-shadow:0 0 10px rgba(0,212,255,.15)}
+.btn-sm.g{border-color:rgba(0,230,118,.3);color:var(--c-green);background:rgba(0,230,118,.05)}
+.btn-sm.g:hover{background:rgba(0,230,118,.12)}
+.btn-sm.r{border-color:rgba(255,23,68,.3);color:var(--c-red);background:rgba(255,23,68,.05)}
+.btn-sm.r:hover{background:rgba(255,23,68,.12)}
+
+/* ── MODULE CARDS (enhanced) ── */
+.mcard{background:var(--bg2);border:1px solid var(--border);border-radius:5px;overflow:hidden;border-left-width:3px;transition:border-color .3s,box-shadow .3s}
+.mcard.sc{border-left-color:var(--c-red)}.mcard.sh{border-left-color:var(--c-orange)}.mcard.sm{border-left-color:var(--c-yellow)}
+.mcard.sl{border-left-color:var(--c-green)}.mcard.si{border-left-color:var(--c-blue)}.mcard.sp{border-left-color:var(--t3)}
+.mcard.se{border-left-color:var(--c-red);opacity:.75}
+/* Running card — pulsing glow */
+.mcard.sr{
+  border-left-color:var(--c-cyan);border-color:rgba(0,212,255,.35);
+  box-shadow:0 0 16px rgba(0,212,255,.12),inset 0 0 30px rgba(0,212,255,.02);
+  animation:mrun 1.8s ease-in-out infinite;
+}
+@keyframes mrun{0%,100%{box-shadow:0 0 8px rgba(0,212,255,.1),inset 0 0 20px rgba(0,212,255,.02)}50%{box-shadow:0 0 22px rgba(0,212,255,.25),inset 0 0 35px rgba(0,212,255,.05)}}
+
+.mhdr{padding:clamp(9px,1vh,14px) clamp(10px,1vw,16px);display:flex;align-items:flex-start;justify-content:space-between;cursor:pointer;user-select:none;transition:background .15s}
+.mhdr:hover{background:rgba(255,255,255,.012)}
+.mhdr-l{display:flex;align-items:flex-start;gap:clamp(8px,0.9vw,14px);flex:1;min-width:0}
+.mibox{width:var(--mibox-size);height:var(--mibox-size);flex-shrink:0;background:var(--bg3);border:1px solid var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);font-weight:bold;color:var(--c-cyan);text-align:center;transition:border-color .3s,background .3s}
+.mcard.sr .mibox{border-color:rgba(0,212,255,.4);background:rgba(0,212,255,.06);animation:iblink 1.4s ease-in-out infinite}
+@keyframes iblink{0%,100%{box-shadow:none}50%{box-shadow:0 0 8px rgba(0,212,255,.3)}}
+.minfo{flex:1;min-width:0}
+.mname{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-md);font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t1);line-height:1.2}
+.msubttl{font-size:var(--fs-mono-xs);color:var(--t3);font-family:'Share Tech Mono',monospace;margin-top:2px;line-height:1.4}
+.mcard.sr .msubttl{color:rgba(0,212,255,.6)}
+.msum{font-size:var(--fs-body);color:var(--t2);margin-top:3px;line-height:1.4;word-break:break-word}
+
+/* ── Module progress track inside card ── */
+.mprog{margin:0 clamp(10px,1vw,16px) clamp(7px,0.8vh,11px);display:none}
+.mcard.sr .mprog{display:block}
+.mprog-bar{height:2px;background:var(--border);border-radius:2px;overflow:hidden;position:relative}
+.mprog-fill{height:100%;background:linear-gradient(90deg,var(--c-cyan),var(--c-green));border-radius:2px;transition:width .4s ease;box-shadow:0 0 4px var(--c-cyan)}
+.mprog-shimmer{position:absolute;top:0;left:-60%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);animation:shimmer 1.4s linear infinite}
+@keyframes shimmer{to{left:160%}}
+.mprog-meta{display:flex;justify-content:space-between;margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3)}
+.mprog-count{color:var(--c-cyan)}
+.mprog-elapsed{color:var(--t3)}
+
+/* ── Live findings feed inside card ── */
+.mlive{margin:0 clamp(10px,1vw,16px) clamp(7px,0.8vh,11px);display:none;max-height:80px;overflow:hidden;position:relative}
+.mcard.sr .mlive{display:block}
+.mlive::after{content:'';position:absolute;bottom:0;left:0;right:0;height:22px;background:linear-gradient(transparent,var(--bg2))}
+.mlive-item{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:lslide .2s ease}
+@keyframes lslide{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.mlive-item.new{color:var(--c-cyan)}
+
+.mhdr-r{display:flex;align-items:center;gap:clamp(6px,0.7vw,10px);flex-shrink:0;margin-left:8px}
+.badge{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);letter-spacing:2px;text-transform:uppercase;padding:clamp(2px,0.25vh,4px) clamp(5px,0.6vw,9px);border-radius:2px;border:1px solid;white-space:nowrap}
+.bcrit{color:var(--c-red);border-color:var(--c-red);background:rgba(255,23,68,.07)}
+.bhigh{color:var(--c-orange);border-color:var(--c-orange);background:rgba(255,145,0,.07)}
+.bmed{color:var(--c-yellow);border-color:var(--c-yellow);background:rgba(255,215,64,.07)}
+.blow{color:var(--c-green);border-color:var(--c-green);background:rgba(0,230,118,.07)}
+.binfo{color:var(--c-blue);border-color:var(--c-blue);background:rgba(68,138,255,.07)}
+.brun{color:var(--c-cyan);border-color:rgba(0,212,255,.5);background:rgba(0,212,255,.08);animation:blink 1s infinite}
+.berr{color:var(--c-red);border-color:rgba(255,23,68,.3);background:rgba(255,23,68,.05)}
+.bpend{color:var(--t3);border-color:var(--t3);background:transparent;opacity:.5}
+.chev{color:var(--t3);font-size:var(--fs-mono-xs);transition:transform .25s;line-height:1}
+.chev.open{transform:rotate(180deg)}
+
+/* status icon */
+.stico{font-size:clamp(11px,1.1vw,15px);flex-shrink:0;line-height:1}
+
+.mbody{border-top:1px solid var(--border)}
+.fwrap{padding:clamp(8px,0.9vh,14px) clamp(10px,1vw,16px)}
+.stitle{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--t3);margin-bottom:clamp(5px,0.6vh,8px)}
+.finding{display:flex;align-items:flex-start;gap:clamp(6px,0.7vw,10px);background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:clamp(5px,0.6vh,8px) clamp(8px,0.8vw,12px);margin-bottom:4px;animation:slin .2s}
+.finding.critical{border-color:rgba(255,23,68,.2);background:rgba(255,23,68,.04)}
+.finding.high{border-color:rgba(255,145,0,.15)}
+@keyframes slin{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:none}}
+.fdot{width:clamp(4px,0.4vw,6px);height:clamp(4px,0.4vw,6px);border-radius:50%;flex-shrink:0;margin-top:6px}
+.fdot.critical{background:var(--c-red);box-shadow:0 0 5px var(--c-red)}.fdot.high{background:var(--c-orange);box-shadow:0 0 5px var(--c-orange)}
+.fdot.medium{background:var(--c-yellow)}.fdot.low{background:var(--c-green)}.fdot.info{background:var(--c-blue)}
+.fcon{flex:1;min-width:0}
+.ftype{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);text-transform:uppercase;letter-spacing:1px}
+.fval{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm);color:var(--t1);margin-top:1px;word-break:break-all}
+.fdesc{font-size:var(--fs-body);color:var(--t2);margin-top:2px;line-height:1.5}
+.factions{display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap}
+.fev-btn{display:inline-flex;align-items:center;gap:3px;background:none;border:1px solid rgba(0,212,255,.2);border-radius:3px;color:var(--t3);cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 6px;transition:all .15s;letter-spacing:.3px}
+.fev-btn:hover{background:rgba(0,212,255,.08);border-color:rgba(0,212,255,.4);color:var(--c-cyan)}
+.fev-btn.has-ev{border-color:rgba(0,212,255,.5);color:var(--c-cyan);background:rgba(0,212,255,.05)}
+.fev-btn .fev-count{background:var(--c-cyan);color:var(--bg-dark);border-radius:2px;padding:0 3px;font-weight:700;min-width:12px;text-align:center;font-size:8px}
+.furl-inp{background:var(--bg-dark);border:1px solid var(--border);border-radius:3px;color:var(--c-cyan);font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 7px;flex:1;min-width:0}
+.furl-inp:focus{outline:none;border-color:rgba(0,212,255,.5)}
+.fnote-inp{background:var(--bg-dark);border:1px solid var(--border);border-radius:3px;color:var(--t1);font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 7px;flex:1;min-width:0}
+.fnote-inp:focus{outline:none;border-color:rgba(0,212,255,.5)}
+.fev-inline{display:none;margin-top:6px;background:var(--bg-dark);border:1px solid rgba(0,212,255,.15);border-radius:4px;padding:8px 10px}
+.fev-inline.open{display:block}
+.fev-inline-title{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t3);letter-spacing:1px;margin-bottom:7px;text-transform:uppercase}
+.fev-thumb-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.fev-thumb{width:52px;height:36px;object-fit:cover;border-radius:2px;border:1px solid var(--border);cursor:pointer}
+.fev-thumb:hover{border-color:rgba(0,212,255,.4)}
+.fev-file-chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 6px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t2);cursor:pointer}
+.fev-file-chip:hover{border-color:rgba(0,212,255,.3);color:var(--c-cyan)}
+
+.twrap{padding:0 clamp(10px,1vw,16px) clamp(8px,0.9vh,12px);overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm)}
+th{background:var(--bg3);color:var(--t3);font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);letter-spacing:2px;text-transform:uppercase;padding:clamp(4px,0.5vh,7px) clamp(6px,0.6vw,10px);text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:clamp(3px,0.4vh,6px) clamp(6px,0.6vw,10px);border-bottom:1px solid var(--border);color:var(--t2);vertical-align:top}
+tr:hover td{background:rgba(0,212,255,.012)}
+.tc{color:var(--t1)}.ta{color:var(--c-cyan)}.td{color:var(--c-red)}.tw{color:var(--c-yellow)}.tg{color:var(--c-green)}
+
+.toolwrap{padding:clamp(6px,0.7vh,10px) clamp(10px,1vw,16px) clamp(8px,0.9vh,12px);border-top:1px solid var(--border)}
+.tlist{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.tchip{background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:clamp(2px,0.25vh,4px) clamp(6px,0.6vw,10px);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);display:flex;align-items:center;gap:4px}
+.tchip.tok{border-color:rgba(0,230,118,.22);color:var(--c-green)}.tchip.tman{border-color:rgba(255,145,0,.22);color:var(--c-orange)}
+.tchip a{color:inherit;text-decoration:none}.tchip a:hover{color:var(--c-cyan)}
+.tbul{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.tbul.ok{background:var(--c-green)}.tbul.manual{background:var(--c-orange)}.tbul.err{background:var(--t3)}
+
+.spin{display:inline-block;width:clamp(9px,0.9vw,13px);height:clamp(9px,0.9vw,13px);border:2px solid var(--border);border-top-color:var(--c-cyan);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── SCAN LOG ── */
+#scan-log-wrap{border-top:1px solid var(--border);background:var(--bg1);flex-shrink:0;display:none;height:clamp(90px,12vh,150px);flex-direction:column;overflow:hidden}
+#scan-log-wrap.visible{display:flex}
+.log-bar{display:flex;align-items:center;justify-content:space-between;padding:4px clamp(10px,1vw,16px);border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.log-bar-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);letter-spacing:2px}
+.log-bar-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:var(--fs-mono-xs);padding:2px 6px;border-radius:2px;transition:color .15s}
+.log-bar-btn:hover{color:var(--c-cyan)}
+#scan-log{overflow-y:auto;flex:1;padding:4px clamp(10px,1vw,16px);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);line-height:1.7}
+#scan-log::-webkit-scrollbar{width:3px}
+#scan-log::-webkit-scrollbar-thumb{background:var(--border)}
+.log-line{animation:slin .15s ease}
+.log-line.ok{color:var(--c-green)}
+.log-line.err{color:var(--c-red)}
+.log-line.info{color:var(--c-cyan)}
+.log-line.ev{color:#b388ff}  /* evidence capture lines — purple */
+
+/* ── HISTORY VIEW ── */
+#history-view{display:none;flex-direction:column;height:100%;overflow:hidden}
+.hv-bar{padding:clamp(9px,1vh,14px) clamp(12px,1.2vw,20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg1);flex-shrink:0;gap:8px;flex-wrap:wrap}
+.hv-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-md);color:var(--c-cyan);letter-spacing:2px}
+.hv-actions{display:flex;gap:6px;flex-wrap:wrap}
+#scan-list{overflow-y:auto;flex:1;padding:clamp(8px,0.9vw,16px)}
+#scan-list::-webkit-scrollbar{width:4px}
+#scan-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.scan-item{background:var(--bg2);border:1px solid var(--border);border-radius:5px;margin-bottom:clamp(5px,0.6vh,9px);overflow:hidden;transition:border-color .2s}
+.scan-item:hover{border-color:rgba(0,212,255,.25)}
+.scan-item.active{border-color:rgba(0,212,255,.45)}
+.si-hdr{padding:clamp(8px,0.9vh,13px) clamp(10px,1vw,16px);display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none;flex-wrap:wrap}
+.si-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.si-name{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-md);font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.si-meta{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.si-stats{display:flex;gap:clamp(6px,0.8vw,12px);flex-shrink:0}
+.si-stat{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm)}
+.si-actions{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid transparent;border-radius:3px;cursor:pointer;padding:clamp(3px,0.4vh,6px) clamp(5px,0.5vw,8px);font-size:var(--fs-mono-sm);transition:all .15s;color:var(--t3)}
+.icon-btn:hover{border-color:var(--border);color:var(--t1)}
+.icon-btn.del:hover{border-color:rgba(255,23,68,.3);color:var(--c-red)}
+.icon-btn.pdf-btn:hover{border-color:rgba(0,230,118,.3);color:var(--c-green)}
+.icon-btn.xlsx-btn:hover{border-color:rgba(0,230,118,.35);color:var(--c-green)}
+.icon-btn.manual-btn:hover{border-color:rgba(255,145,0,.35);color:var(--c-orange)}
+/* Manual findings modal */
+#manual-overlay{display:none;position:fixed;inset:0;z-index:700;background:rgba(5,8,13,.82);align-items:center;justify-content:center}
+#manual-overlay.show{display:flex}
+#manual-modal{background:var(--bg1);border:1px solid rgba(255,145,0,.4);border-radius:7px;width:clamp(340px,90vw,720px);max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.mm-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:clamp(12px,1.5vh,18px) clamp(14px,1.5vw,22px);border-bottom:1px solid var(--border);gap:10px;background:var(--bg2)}
+.mm-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-md);color:var(--c-orange)}
+.mm-sub{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);color:var(--t3);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.mm-close{background:none;border:1px solid transparent;border-radius:3px;color:var(--t3);cursor:pointer;font-size:16px;padding:2px 7px;transition:all .15s;flex-shrink:0}
+.mm-close:hover{border-color:var(--border);color:var(--t1)}
+.mm-body{flex:1;overflow-y:auto;padding:clamp(12px,1.5vh,18px) clamp(14px,1.5vw,22px);display:flex;flex-direction:column;gap:12px}
+.mm-section{background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:12px 14px}
+.mm-section-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--c-orange);margin-bottom:10px;letter-spacing:1px}
+.mm-field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.mm-field label{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);letter-spacing:1px}
+.mm-field input,.mm-field textarea,.mm-field select{background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--t1);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);padding:7px 10px;resize:vertical;transition:border-color .15s}
+.mm-field input:focus,.mm-field textarea:focus,.mm-field select:focus{outline:none;border-color:rgba(255,145,0,.5)}
+.mm-field textarea{min-height:60px}
+.mm-finding-list{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto}
+.mm-finding-item{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px;font-size:var(--fs-mono-xs)}
+.mm-finding-item .mfi-val{flex:1;color:var(--t1);word-break:break-all}
+.mm-finding-item .mfi-sev{padding:1px 6px;border-radius:2px;font-size:10px;font-weight:700;flex-shrink:0;text-transform:uppercase}
+.mm-finding-item .mfi-del{background:none;border:none;color:var(--t3);cursor:pointer;padding:0 4px;font-size:13px;flex-shrink:0}
+.mm-finding-item .mfi-del:hover{color:var(--c-red)}
+.mm-finding-item .mfi-manual{color:var(--c-orange);font-size:9px;flex-shrink:0;padding-top:2px}
+.mm-add-row{display:flex;gap:6px;align-items:flex-end}
+.mm-add-row input{flex:1}
+.mm-footer{display:flex;gap:8px;justify-content:flex-end;padding:12px 14px;border-top:1px solid var(--border);background:var(--bg2)}
+.mm-empty{text-align:center;padding:16px;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3)}
+/* Data breach card in bodyHTML */
+.breach-card{background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:10px 12px;margin-bottom:8px}
+.breach-card.critical{border-color:rgba(255,23,68,.35);background:rgba(255,23,68,.04)}
+.breach-card.high{border-color:rgba(255,145,0,.3);background:rgba(255,145,0,.04)}
+.breach-card.medium{border-color:rgba(255,215,64,.25)}
+.breach-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.breach-name{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm);color:var(--t1);font-weight:700}
+.breach-meta{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--t3)}
+.breach-records{font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:700}
+.breach-tags{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0}
+.breach-tag{font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(0,212,255,.1);color:var(--c-cyan);border:1px solid rgba(0,212,255,.2);font-family:'Share Tech Mono',monospace}
+.breach-tag.danger{background:rgba(255,23,68,.1);color:var(--c-red);border-color:rgba(255,23,68,.2)}
+.breach-desc{font-size:var(--fs-body);color:var(--t3);line-height:1.5;margin-top:4px}
+.breach-badges{display:flex;gap:4px;flex-wrap:wrap}
+.breach-badge{font-size:9px;padding:1px 5px;border-radius:2px;font-family:'Share Tech Mono',monospace;font-weight:700}
+.breach-badge.verified{background:rgba(0,230,118,.1);color:var(--c-green);border:1px solid rgba(0,230,118,.25)}
+.breach-badge.sensitive{background:rgba(255,23,68,.1);color:var(--c-red);border:1px solid rgba(255,23,68,.25)}
+.breach-badge.fabricated{background:rgba(107,138,170,.1);color:var(--t3);border:1px solid var(--border)}
+/* footer */
+.brand-footer{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--t3);text-align:center;padding:4px 0 2px;letter-spacing:2px;opacity:.6}
+/* ── EVIDENCE SYSTEM ─────────────────────────────────────────── */
+/* Evidence button inside module cards */
+.ev-btn{display:inline-flex;align-items:center;gap:4px;background:none;border:1px solid rgba(0,212,255,.25);border-radius:3px;color:var(--c-cyan);cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;transition:all .15s;letter-spacing:.5px}
+.ev-btn:hover{background:rgba(0,212,255,.08);border-color:rgba(0,212,255,.5)}
+.ev-btn .ev-count{background:var(--c-cyan);color:var(--bg-dark);border-radius:2px;padding:0 4px;font-weight:700;min-width:14px;text-align:center}
+.ev-btn.has-ev{border-color:rgba(0,212,255,.5);background:rgba(0,212,255,.06)}
+/* Evidence panel inside mbody */
+.ev-panel{margin-top:8px;background:var(--bg2);border:1px solid rgba(0,212,255,.2);border-radius:5px;overflow:hidden}
+.ev-panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--bg3);border-bottom:1px solid rgba(0,212,255,.15)}
+.ev-panel-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--c-cyan);letter-spacing:1px}
+.ev-upload-btn{background:none;border:1px solid rgba(0,212,255,.3);border-radius:3px;color:var(--c-cyan);cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 8px;transition:all .15s}
+.ev-upload-btn:hover{background:rgba(0,212,255,.08)}
+.ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;padding:10px 12px}
+.ev-item{background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;transition:border-color .15s;cursor:pointer;position:relative}
+.ev-item:hover{border-color:rgba(0,212,255,.4)}
+.ev-item-img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:var(--bg-dark)}
+.ev-item-thumb{width:100%;aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;background:var(--bg-dark);font-size:28px}
+.ev-item-meta{padding:5px 7px}
+.ev-item-name{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-item-caption{font-size:var(--fs-body);color:var(--t3);margin-top:2px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-item-badge{position:absolute;top:4px;right:4px;font-size:8px;padding:1px 4px;border-radius:2px;font-family:'Share Tech Mono',monospace;font-weight:700}
+.ev-item-badge.auto{background:rgba(0,212,255,.15);color:var(--c-cyan);border:1px solid rgba(0,212,255,.3)}
+.ev-item-badge.manual{background:rgba(255,145,0,.15);color:var(--c-orange);border:1px solid rgba(255,145,0,.3)}
+.ev-empty{padding:16px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3)}
+/* Evidence lightbox / viewer */
+#ev-viewer-overlay{display:none;position:fixed;inset:0;z-index:900;background:rgba(5,8,13,.93);align-items:center;justify-content:center}
+#ev-viewer-overlay.show{display:flex}
+#ev-viewer-box{background:var(--bg1);border:1px solid rgba(0,212,255,.3);border-radius:7px;width:clamp(360px,90vw,960px);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.evv-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.evv-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm);color:var(--c-cyan);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evv-badge{font-size:9px;padding:2px 6px;border-radius:2px;font-family:'Share Tech Mono',monospace;font-weight:700;flex-shrink:0}
+.evv-badge.auto{background:rgba(0,212,255,.12);color:var(--c-cyan);border:1px solid rgba(0,212,255,.3)}
+.evv-badge.manual{background:rgba(255,145,0,.12);color:var(--c-orange);border:1px solid rgba(255,145,0,.3)}
+.evv-close{background:none;border:1px solid transparent;border-radius:3px;color:var(--t3);cursor:pointer;font-size:16px;padding:2px 8px;flex-shrink:0}
+.evv-close:hover{border-color:var(--border);color:var(--t1)}
+.evv-body{flex:1;overflow:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.evv-img{max-width:100%;max-height:65vh;object-fit:contain;display:block;margin:0 auto;border-radius:3px}
+.evv-text{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--t1);white-space:pre-wrap;word-break:break-all;background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;padding:12px;max-height:65vh;overflow:auto;line-height:1.6}
+.evv-caption-row{display:flex;gap:8px;align-items:center}
+.evv-caption-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--t1);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);padding:5px 8px}
+.evv-caption-input:focus{outline:none;border-color:rgba(0,212,255,.4)}
+.evv-meta{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t3);display:flex;gap:12px;flex-wrap:wrap}
+.evv-footer{display:flex;gap:8px;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+/* Upload drop zone */
+.ev-dropzone{border:2px dashed rgba(0,212,255,.25);border-radius:5px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3)}
+.ev-dropzone:hover,.ev-dropzone.dragover{border-color:rgba(0,212,255,.6);background:rgba(0,212,255,.04)}
+.ev-dropzone-icon{font-size:28px;margin-bottom:6px}
+.ev-dropzone-text{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t2)}
+.ev-dropzone-sub{font-size:var(--fs-body);color:var(--t3);margin-top:4px}
+
+.si-body{border-top:1px solid var(--border);display:none}
+.si-body.open{display:block}
+.si-body-inner{padding:clamp(8px,0.9vh,13px) clamp(10px,1vw,16px)}
+
+.mod-mini-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(110px,10vw,160px),1fr));gap:4px;margin-bottom:10px}
+.mod-mini{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:clamp(5px,0.6vh,9px) clamp(7px,0.7vw,11px);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s}
+.mod-mini:hover{border-color:rgba(0,212,255,.3);background:rgba(0,212,255,.04)}
+.mod-mini-l{display:flex;align-items:center;gap:clamp(5px,0.6vw,9px)}
+.mod-mini-ic{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:1px 4px}
+.mod-mini-nm{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t2)}
+.mod-mini-dot{width:clamp(5px,0.5vw,7px);height:clamp(5px,0.5vw,7px);border-radius:50%}
+.mod-mini.sev-critical .mod-mini-dot{background:var(--c-red);box-shadow:0 0 4px var(--c-red)}
+.mod-mini.sev-high .mod-mini-dot{background:var(--c-orange);box-shadow:0 0 4px var(--c-orange)}
+.mod-mini.sev-medium .mod-mini-dot{background:var(--c-yellow)}
+.mod-mini.sev-low .mod-mini-dot{background:var(--c-green)}
+.mod-mini.sev-info .mod-mini-dot{background:var(--c-blue)}
+
+/* Modal/Detail overlay */
+#detail-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(5,8,13,.85);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+#detail-overlay.show{display:flex}
+#detail-modal{background:var(--bg1);border:1px solid var(--border);border-radius:7px;width:clamp(320px,88vw,960px);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.dm-hdr{padding:clamp(10px,1.2vh,16px) clamp(14px,1.4vw,22px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
+.dm-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-md);color:var(--c-cyan)}
+.dm-close{background:none;border:1px solid var(--border);border-radius:3px;color:var(--t3);cursor:pointer;font-size:clamp(12px,1.2vw,16px);padding:3px 9px;transition:all .15s}
+.dm-close:hover{color:var(--c-red);border-color:rgba(255,23,68,.3)}
+.dm-body{overflow-y:auto;padding:clamp(12px,1.4vh,20px) clamp(14px,1.4vw,22px);flex:1}
+.dm-body::-webkit-scrollbar{width:4px}
+.dm-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:clamp(12px,1.5vh,20px);right:clamp(12px,1.5vw,20px);z-index:9999;background:var(--bg2);border:1px solid var(--c-cyan);border-radius:4px;padding:clamp(7px,0.8vh,11px) clamp(12px,1.2vw,18px);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm);color:var(--c-cyan);box-shadow:0 0 14px rgba(0,212,255,.15);display:none;animation:tin .3s}
+@keyframes tin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+#toast.err{border-color:var(--c-red);color:var(--c-red)}
+#toast.ok{border-color:var(--c-green);color:var(--c-green)}
+
+#confirm-overlay{display:none;position:fixed;inset:0;z-index:600;background:rgba(5,8,13,.7);align-items:center;justify-content:center}
+#confirm-overlay.show{display:flex}
+#confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:clamp(16px,2vh,26px) clamp(18px,1.8vw,28px);max-width:clamp(280px,36vw,420px);width:90%}
+.cb-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-md);color:var(--c-red);margin-bottom:10px}
+.cb-msg{font-size:var(--fs-body);color:var(--t2);line-height:1.5;margin-bottom:16px}
+.cb-btns{display:flex;gap:8px;justify-content:flex-end}
+
+.rename-wrap{display:flex;gap:5px;margin-bottom:8px}
+.rename-wrap input{flex:1}
+.empty-history{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:8px;opacity:.3}
+.empty-history p{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm);color:var(--t3);letter-spacing:2px;text-transform:uppercase}
+
+#scan-list.drag-over{outline:2px dashed var(--c-cyan);outline-offset:-4px;background:rgba(0,212,255,.03)}
+.import-badge{display:inline-block;background:rgba(179,136,255,.12);border:1px solid rgba(179,136,255,.3);border-radius:2px;color:var(--c-purple);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);letter-spacing:1px;padding:1px 5px;vertical-align:middle;margin-left:6px}
+.import-row{display:flex;align-items:center;gap:8px;padding:clamp(6px,0.7vh,10px) clamp(10px,1vw,14px);background:var(--bg3);border:1px solid var(--border);border-radius:4px;margin-bottom:5px;animation:slin .2s}
+.import-row .spin{flex-shrink:0}
+.import-row-name{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm);color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.import-row-status{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);flex-shrink:0}
+.import-row-status.ok{color:var(--c-green)}.import-row-status.err{color:var(--c-red)}
+
+/* ── SETTINGS OVERLAY ── */
+#settings-overlay{display:none;position:fixed;inset:0;z-index:700;background:rgba(5,8,13,.88);backdrop-filter:blur(5px);align-items:center;justify-content:center}
+#settings-overlay.show{display:flex}
+#settings-modal{background:var(--bg1);border:1px solid var(--border);border-radius:7px;width:clamp(320px,88vw,680px);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.sm-hdr{padding:clamp(12px,1.4vh,18px) clamp(16px,1.6vw,24px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
+.sm-title{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-md);color:var(--c-cyan)}
+.sm-subtitle{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-xs);color:var(--t3);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.sm-close{background:none;border:1px solid var(--border);border-radius:3px;color:var(--t3);cursor:pointer;font-size:clamp(12px,1.2vw,16px);padding:3px 9px;transition:all .15s}
+.sm-close:hover{color:var(--c-red);border-color:rgba(255,23,68,.3)}
+.sm-body{overflow-y:auto;padding:clamp(14px,1.6vh,22px) clamp(16px,1.6vw,24px);flex:1;display:flex;flex-direction:column;gap:clamp(10px,1.2vh,16px)}
+.sm-body::-webkit-scrollbar{width:4px}
+.sm-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.key-card{background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:clamp(10px,1.2vh,16px) clamp(12px,1.2vw,18px);transition:border-color .2s}
+.key-card.configured{border-color:rgba(0,230,118,.25)}
+.key-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.key-card-name{font-family:'Rajdhani',sans-serif;font-size:var(--fs-raj-md);font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t1)}
+.key-card-status{font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);padding:2px 8px;border-radius:2px;border:1px solid}
+.key-card-status.ok{color:var(--c-green);border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.07)}
+.key-card-status.none{color:var(--t3);border-color:var(--border);background:transparent}
+.key-sensitive-badge{font-size:11px;margin:0 4px;opacity:.7;cursor:help}
+.audit-row{font-family:'Share Tech Mono',monospace;font-size:11px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:8px;align-items:center}
+.audit-ts{color:var(--t3);font-size:10px;min-width:160px}
+.key-card-help{font-size:var(--fs-body);color:var(--t3);line-height:1.5;margin-bottom:10px}
+.key-card-help a{color:var(--c-cyan);text-decoration:none}
+.key-card-help a:hover{text-decoration:underline}
+.key-input-row{display:flex;gap:6px}
+.key-input-row input{flex:1;font-family:'Share Tech Mono',monospace;background:var(--bg0);border:1px solid var(--border);border-radius:3px;color:var(--t1);font-size:var(--fs-mono-sm);padding:clamp(5px,0.6vh,8px) clamp(8px,0.8vw,12px);outline:none;transition:border-color .2s}
+.key-input-row input:focus{border-color:var(--c-cyan)}
+.key-input-row input::placeholder{color:var(--t3)}
+.btn-save-key{background:rgba(0,212,255,.08);border:1px solid var(--c-cyan);border-radius:3px;color:var(--c-cyan);cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);letter-spacing:1px;padding:0 clamp(10px,1vw,16px);text-transform:uppercase;transition:all .2s;white-space:nowrap}
+.btn-save-key:hover{background:rgba(0,212,255,.18)}
+.btn-del-key{background:none;border:1px solid rgba(255,23,68,.25);border-radius:3px;color:var(--c-red);cursor:pointer;font-size:var(--fs-mono-sm);padding:0 8px;transition:all .15s;opacity:.6}
+.btn-del-key:hover{opacity:1;background:rgba(255,23,68,.08)}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1100px) {
+  :root{ --sidebar-w: clamp(220px, 28vw, 300px); }
+  .logo-ver{ display:none }
+  .hdr-right span{ display:none }
+}
+@media (max-width: 780px) {
+  :root{ --sidebar-w: 100%; }
+  #shell{ grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  #sidebar{
+    position: fixed; left:0; top:var(--hdr-h); bottom:0; z-index:200;
+    width: clamp(260px, 80vw, 360px);
+    transform: translateX(-110%); transition: transform .3s ease;
+    border-right: 1px solid var(--c-cyan);
+    box-shadow: 4px 0 24px rgba(0,212,255,.12);
+  }
+  #sidebar.open{ transform: translateX(0); }
+  #main{ grid-column:1; }
+  #menu-toggle{ display:flex; }
+  .logo-name{ font-size: clamp(10px, 3.5vw, 14px); letter-spacing:2px; }
+}
+#menu-toggle{
+  display:none; align-items:center; justify-content:center;
+  background:rgba(0,212,255,.06); border:1px solid rgba(0,212,255,.25);
+  border-radius:4px; color:var(--c-cyan); cursor:pointer;
+  font-size:clamp(14px,1.6vw,20px); padding:clamp(4px,0.5vh,7px) clamp(7px,0.8vw,11px);
+  transition:all .2s; flex-shrink:0;
+}
+#menu-toggle:hover{ background:rgba(0,212,255,.14); }
+#sidebar-overlay{
+  display:none; position:fixed; inset:0; z-index:199;
+  background:rgba(5,8,13,.6); backdrop-filter:blur(2px);
+}
+#sidebar-overlay.show{ display:block; }
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div class="logo">
+    <div class="logo-gem"></div>
+    <div>
+      <div class="logo-name" data-i18n="logo_name">INFORMACIÓN EXPUESTA</div>
+      <div class="logo-ver" data-i18n="logo_ver">Análisis de Superficie &mdash; Nivel 1</div>
+    </div>
+  </div>
+  <button id="menu-toggle" onclick="toggleSidebar()" title="Menu">&#9776;</button>
+  <div class="hdr-tabs">
+    <button class="htab active" id="tab-scan" onclick="switchTab('scan')" data-i18n="tab_scan">&#9654; ESCANEO</button>
+    <button class="htab" id="tab-hist" onclick="switchTab('hist')"><span data-i18n="tab_hist">&#9776; HISTORIAL</span> <span class="htab-badge" id="hist-badge" style="display:none">0</span></button>
+  </div>
+  <div class="hdr-right">
+    <div class="pulse" id="statusDot"></div>
+    <span id="statusText" data-i18n="status_active">ACTIVO</span>
+    <button class="htab" onclick="openSettings()" title="Configurar API Keys" style="margin-left:4px" data-i18n="btn_settings">&#9881; AJUSTES</button>
+    <button class="htab" id="langToggle" onclick="toggleLang()" title="Switch language" style="margin-left:2px;letter-spacing:1px">ES / EN</button>
+  </div>
+</div>
+
+<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div id="shell">
+  <div id="sidebar">
+    <div class="sc">
+      <div class="sc-ttl" data-i18n="sec_target">Objetivo</div>
+      <label class="flbl" data-i18n="lbl_company">Empresa / Cliente</label>
+      <input type="text" id="iCompany" data-i18n-ph="ph_company"/>
+      <label class="flbl mt" data-i18n="lbl_domains">Dominios</label>
+      <div class="add-row">
+        <input type="text" id="iDomain" data-i18n-ph="ph_domain"/>
+        <button class="btn-add" id="btnAdd">+</button>
+      </div>
+      <div class="hint" data-i18n="hint_domain">Enter o + para agregar</div>
+      <div class="tags" id="tagsWrap"></div>
+    </div>
+
+    <div class="sc">
+      <div class="sc-ttl" data-i18n="sec_modules">Modulos</div>
+      <button class="btn-all" id="btnAll" data-i18n="btn_all_sel">&#9745; SELECCIONAR TODOS</button>
+      <div class="mgrid" id="mgrid"></div>
+    </div>
+
+    <div class="sc">
+      <button class="btn-scan" id="btnScan" data-i18n="btn_start">&#9654;&nbsp; INICIAR ESCANEO</button>
+      <div class="gprog-wrap" id="progWrap" style="display:none">
+        <div class="gprog-info">
+          <span class="gprog-count" id="progLbl">0 / 0 modulos</span>
+          <span class="gprog-pct" id="progPct">0%</span>
+        </div>
+        <div class="gprog-track"><div class="gprog-fill" id="progFill" style="width:0%"></div></div>
+        <div class="gprog-current" id="progCurrent"></div>
+      </div>
+    </div>
+    <div class="brand-footer"></div>
+  </div>
+
+  <div id="main">
+    <div id="scan-view">
+      <div id="results">
+        <div class="welcome" id="wscrn">
+          <div class="welcome-hex">&#9671;</div>
+          <h2 data-i18n="welcome_title">EN ESPERA</h2>
+          <p data-i18n="welcome_sub">Configure el objetivo e inicie el escaneo</p>
+        </div>
+      </div>
+      <div id="scan-log-wrap">
+        <div class="log-bar">
+          <span class="log-bar-title" data-i18n="log_title">// SCAN LOG</span>
+          <div style="display:flex;gap:4px">
+            <button class="log-bar-btn" onclick="clearLog()" data-i18n="log_clear">LIMPIAR</button>
+            <button class="log-bar-btn" onclick="toggleLog()" data-i18n="log_hide">&#9660; OCULTAR</button>
+          </div>
+        </div>
+        <div id="scan-log"></div>
+      </div>
+    </div>
+
+    <div id="history-view">
+      <div class="hv-bar">
+        <span class="hv-title" data-i18n="hist_title">// HISTORIAL DE ESCANEOS</span>
+        <div class="hv-actions">
+          <button class="btn-sm" onclick="loadHistory()" data-i18n="hist_refresh">&#8635; ACTUALIZAR</button>
+          <button class="btn-sm" onclick="document.getElementById('importFile').click()" data-i18n="hist_import">&#8679; IMPORTAR JSON</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" multiple onchange="importScans(this)"/>
+        </div>
+      </div>
+      <div id="scan-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODULE DETAIL MODAL -->
+<div id="detail-overlay">
+  <div id="detail-modal">
+    <div class="dm-hdr">
+      <span class="dm-title" id="dm-title">// MODULO</span>
+      <button class="dm-close" onclick="closeDetail()">&#x2715;</button>
+    </div>
+    <div class="dm-body" id="dm-body"></div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div id="confirm-overlay">
+  <div id="confirm-box">
+    <div class="cb-title" id="cb-title">CONFIRMAR</div>
+    <div class="cb-msg" id="cb-msg"></div>
+    <div class="cb-btns">
+      <button class="btn-sm" onclick="closeConfirm()">CANCELAR</button>
+      <button class="btn-sm r" id="cb-ok">ELIMINAR</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- SETTINGS OVERLAY -->
+<div id="settings-overlay">
+  <div id="settings-modal">
+    <div class="sm-hdr">
+      <div>
+        <div class="sm-title" data-i18n="settings_title">&#9881; AJUSTES — API KEYS</div>
+        <div class="sm-subtitle" data-i18n="settings_sub">Cifrado AES-128 · PBKDF2-SHA256 · 600k iteraciones · Sin texto plano en disco</div>
+      </div>
+      <button class="sm-close" onclick="closeSettings()">&#x2715;</button>
+    </div>
+    <div class="sm-body" id="settings-body">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px">
+        <span class="spin"></span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3)">CARGANDO...</span>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding:12px 16px;background:rgba(0,0,0,.2)">
+      <div style="font-size:10px;color:var(--t3);letter-spacing:.1em;margin-bottom:8px;font-family:'Share Tech Mono',monospace">🔍 AUDIT LOG — ACCESOS A KEYS (últimas 20 operaciones)</div>
+      <div id="audit-log-list" style="max-height:140px;overflow-y:auto;font-family:'Share Tech Mono',monospace"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EVIDENCE VIEWER OVERLAY -->
+<div id="ev-viewer-overlay" onclick="evViewerBgClose(event)">
+  <div id="ev-viewer-box">
+    <div class="evv-hdr">
+      <div class="evv-title" id="evv-title">Evidencia</div>
+      <span class="evv-badge" id="evv-badge">AUTO</span>
+      <button class="evv-close" onclick="closeEvViewer()">&#x2715;</button>
+    </div>
+    <div class="evv-body" id="evv-body"><!-- filled by JS --></div>
+    <div class="evv-footer">
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm r" id="evv-del-btn" onclick="deleteEvidence()">&#x1F5D1; ELIMINAR</button>
+        <a class="btn-sm" id="evv-dl-btn" style="text-decoration:none;display:inline-flex;align-items:center" download>&#8595; DESCARGAR</a>
+      </div>
+      <button class="btn-sm g" onclick="saveEvCaption()">&#10003; GUARDAR CAPTION</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL FINDINGS OVERLAY -->
+<div id="manual-overlay" onclick="closeManualIfBg(event)">
+  <div id="manual-modal">
+    <div class="mm-hdr">
+      <div>
+        <div class="mm-title" id="mm-title">&#9998; HALLAZGOS MANUALES</div>
+        <div class="mm-sub" id="mm-sub">Ingresa resultados de herramientas manuales</div>
+      </div>
+      <button class="mm-close" onclick="closeManual()">&#x2715;</button>
+    </div>
+    <div class="mm-body" id="mm-body"><!-- filled by JS --></div>
+    <div class="mm-footer">
+      <button class="btn-sm" onclick="closeManual()" id="mm-cancel-btn">CANCELAR</button>
+      <button class="btn-sm g" onclick="saveManualFindings()" id="mm-save-btn">&#10003; GUARDAR</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── I18N ───────────────────────────────────────────────────────────────────
+const LANGS = {
+  es: {
+    // Logo
+    logo_name: 'INFORMACIÓN EXPUESTA',
+    logo_ver:  'Análisis de Superficie &mdash; Nivel 1',
+    // Header
+    tab_scan:        '&#9654; ESCANEO',
+    tab_hist:        '&#9776; HISTORIAL',
+    status_active:   'ACTIVO',
+    status_scanning: 'ESCANEANDO',
+    btn_settings:    '&#9881; AJUSTES',
+    // Sidebar
+    sec_target:  'Objetivo',
+    lbl_company: 'Empresa / Cliente',
+    ph_company:  'Nombre de la organización',
+    lbl_domains: 'Dominios',
+    ph_domain:   'dominio.com',
+    hint_domain: 'Enter o + para agregar',
+    sec_modules: 'Módulos',
+    btn_all_sel: '&#9745; SELECCIONAR TODOS',
+    btn_all_des: '&#9744; DESELECCIONAR TODOS',
+    btn_start:   '&#9654;\xa0 INICIAR ESCANEO',
+    btn_stop:    '&#9632;\xa0 DETENER',
+    btn_new:     '&#9654;\xa0 NUEVO ESCANEO',
+    prog_connecting: 'Conectando...',
+    prog_done:       'Completado',
+    // Welcome
+    welcome_title: 'EN ESPERA',
+    welcome_sub:   'Configure el objetivo e inicie el escaneo',
+    // Scan log
+    log_title: '// REGISTRO DE ESCANEO',
+    log_clear: 'LIMPIAR',
+    log_hide:  '&#9660; OCULTAR',
+    // History
+    hist_title:   '// HISTORIAL DE ESCANEOS',
+    hist_refresh: '&#8635; ACTUALIZAR',
+    hist_import:  '&#8679; IMPORTAR JSON',
+    hist_empty:   'SIN ESCANEOS GUARDADOS',
+    hist_rename:  'RENOMBRAR',
+    hist_modules: 'módulos',
+    // Scan header
+    stat_crit:  'CRIT', stat_high: 'HIGH', stat_med: 'MED',
+    stat_low:   'LOW',  stat_info: 'INFO',
+    // Module card states
+    st_running:  'ACTIVO',
+    st_pending:  'PENDIENTE',
+    st_error:    'ERROR',
+    st_done_crit:'CRÍTICO',
+    // Card body
+    findings_label: 'HALLAZGOS',
+    findings_more:  'y {n} hallazgos más',
+    tools_label:    'HERRAMIENTAS',
+    // Progress
+    prog_modules: '{d} / {t} módulos',
+    // Confirm delete
+    confirm_title: 'ELIMINAR ESCANEO',
+    confirm_msg:   'Se eliminará permanentemente el escaneo de "{name}". Esta acción no se puede deshacer.',
+    confirm_cancel:'CANCELAR',
+    confirm_ok:    'ELIMINAR',
+    // Settings
+    settings_title:'&#9881; AJUSTES — API KEYS',
+    settings_sub:  'Las keys se guardan encriptadas en el contenedor',
+    settings_save: 'GUARDAR',
+    settings_ph_configured: '••••••••••••••••••• (guardada)',
+    settings_ph_empty:      'Pega tu API key aquí',
+    settings_banner: '🔐 Las API keys se guardan <strong style="color:var(--t1)">encriptadas con AES-128</strong> en el contenedor Docker.<br>Nunca se exponen en la interfaz ni en los reportes. Son opcionales — cada una activa funciones adicionales.',
+    settings_get_key: '&#8599; Obtener API key',
+    settings_configured_env: 'IMPORTANDO...',
+    settings_configured_saved: 'CIFRADA ✓',
+    settings_not_configured: 'NO CONFIGURADA',
+    settings_loading: 'CARGANDO...',
+    // Toasts
+    toast_pdf_gen:    'Generando PDF...',
+    toast_pdf_ok:     'PDF descargado',
+    toast_pdf_err:    'Error generando PDF: ',
+    toast_json_ok:    'JSON descargado',
+    toast_json_exp:   'JSON exportado',
+    toast_rename_ok:  'Nombre actualizado',
+    toast_rename_err: 'Error al renombrar',
+    toast_del_ok:     'Escaneo eliminado',
+    toast_del_err:    'Error al eliminar',
+    toast_scan_ok:    'Escaneo completado y guardado',
+    toast_ws_err:     'Error de conexion WebSocket',
+    toast_import_ok:  '{n} escaneo(s) importado(s) correctamente',
+    toast_import_part:'{ok} importado(s), {fail} con error',
+    toast_import_err: 'Error al importar: {fail} archivo(s) fallaron',
+    toast_no_json:    'Solo se aceptan archivos .json',
+    toast_key_empty:  'Ingresa una API key primero',
+    toast_key_ok:     'Key guardada correctamente',
+    toast_key_err:    'Error guardando key: ',
+    toast_key_del:    'Key eliminada',
+    // Misc
+    mod_modules_run: 'módulos ejecutados',
+    pdf_btn:   'PDF', json_btn: 'JSON', del_btn: 'DEL',
+    import_processing: 'Procesando...',
+    import_modules: 'módulos',
+    import_invalid_json: 'JSON inválido',
+    import_invalid_format: 'Formato no reconocido',
+    log_start_conn: '▶ Conexión establecida. Iniciando escaneo de {n} módulos...',
+    log_scan_id: '► Scan ID: ',
+    log_running: '⟳ Ejecutando: ',
+    log_done:    '✔ Completado: ',
+    log_err:     '✖ Error: ',
+    log_global_done: '► Escaneo completado. Guardado como ',
+    log_global_err:  '✖ Error global: ',
+    lbl_findings: ' hallazgo',
+    lbl_findings_pl: ' hallazgos',
+    lbl_found: ' encontrado',
+    lbl_found_pl: ' encontrados',
+    rename_placeholder: 'Nombre del escaneo',
+    detail_modules_title: 'MÓDULOS (click para ver detalle)',
+    no_findings: 'Sin hallazgos',
+    analyzing: 'Analizando...',
+    scanning: 'Scanning...',
+  },
+  en: {
+    logo_name: 'EXPOSED INFORMATION',
+    logo_ver:  'Surface Analysis &mdash; Level 1',
+    tab_scan:        '&#9654; SCAN',
+    tab_hist:        '&#9776; HISTORY',
+    status_active:   'ACTIVE',
+    status_scanning: 'SCANNING',
+    btn_settings:    '&#9881; SETTINGS',
+    sec_target:  'Target',
+    lbl_company: 'Company / Client',
+    ph_company:  'Organization name',
+    lbl_domains: 'Domains',
+    ph_domain:   'domain.com',
+    hint_domain: 'Press Enter or + to add',
+    sec_modules: 'Modules',
+    btn_all_sel: '&#9745; SELECT ALL',
+    btn_all_des: '&#9744; DESELECT ALL',
+    btn_start:   '&#9654;\xa0 START SCAN',
+    btn_stop:    '&#9632;\xa0 STOP',
+    btn_new:     '&#9654;\xa0 NEW SCAN',
+    prog_connecting: 'Connecting...',
+    prog_done:       'Completed',
+    welcome_title: 'STANDING BY',
+    welcome_sub:   'Configure target and start the scan',
+    log_title: '// SCAN LOG',
+    log_clear: 'CLEAR',
+    log_hide:  '&#9660; HIDE',
+    hist_title:   '// SCAN HISTORY',
+    hist_refresh: '&#8635; REFRESH',
+    hist_import:  '&#8679; IMPORT JSON',
+    hist_empty:   'NO SAVED SCANS',
+    hist_rename:  'RENAME',
+    hist_modules: 'modules',
+    stat_crit:  'CRIT', stat_high: 'HIGH', stat_med: 'MED',
+    stat_low:   'LOW',  stat_info: 'INFO',
+    st_running:  'RUNNING',
+    st_pending:  'PENDING',
+    st_error:    'ERROR',
+    st_done_crit:'CRITICAL',
+    findings_label: 'FINDINGS',
+    findings_more:  'and {n} more findings',
+    tools_label:    'TOOLS',
+    prog_modules: '{d} / {t} modules',
+    confirm_title: 'DELETE SCAN',
+    confirm_msg:   'The scan for "{name}" will be permanently deleted. This action cannot be undone.',
+    confirm_cancel:'CANCEL',
+    confirm_ok:    'DELETE',
+    settings_title:'&#9881; SETTINGS — API KEYS',
+    settings_sub:  'Keys are stored encrypted in the container',
+    settings_save: 'SAVE',
+    settings_ph_configured: '••••••••••••••••••• (saved)',
+    settings_ph_empty:      'Paste your API key here',
+    settings_banner: '🔐 API keys are stored <strong style="color:var(--t1)">AES-128 encrypted</strong> in the Docker container.<br>They are never exposed in the UI or reports. All optional — each one enables additional features.',
+    settings_get_key: '&#8599; Get API key',
+    settings_configured_env: 'IMPORTING...',
+    settings_configured_saved: 'ENCRYPTED ✓',
+    settings_not_configured: 'NOT CONFIGURED',
+    settings_loading: 'LOADING...',
+    toast_pdf_gen:    'Generating PDF...',
+    toast_pdf_ok:     'PDF downloaded',
+    toast_pdf_err:    'Error generating PDF: ',
+    toast_json_ok:    'JSON downloaded',
+    toast_json_exp:   'JSON exported',
+    toast_rename_ok:  'Name updated',
+    toast_rename_err: 'Error renaming',
+    toast_del_ok:     'Scan deleted',
+    toast_del_err:    'Error deleting',
+    toast_scan_ok:    'Scan completed and saved',
+    toast_ws_err:     'WebSocket connection error',
+    toast_import_ok:  '{n} scan(s) imported successfully',
+    toast_import_part:'{ok} imported, {fail} with errors',
+    toast_import_err: 'Import error: {fail} file(s) failed',
+    toast_no_json:    'Only .json files are accepted',
+    toast_key_empty:  'Enter an API key first',
+    toast_key_ok:     'Key saved successfully',
+    toast_key_err:    'Error saving key: ',
+    toast_key_del:    'Key deleted',
+    mod_modules_run: 'modules executed',
+    pdf_btn:   'PDF', json_btn: 'JSON', del_btn: 'DEL',
+    import_processing: 'Processing...',
+    import_modules: 'modules',
+    import_invalid_json: 'Invalid JSON',
+    import_invalid_format: 'Unrecognized format',
+    log_start_conn: '▶ Connection established. Starting scan of {n} modules...',
+    log_scan_id: '► Scan ID: ',
+    log_running: '⟳ Running: ',
+    log_done:    '✔ Completed: ',
+    log_err:     '✖ Error: ',
+    log_global_done: '► Scan completed. Saved as ',
+    log_global_err:  '✖ Global error: ',
+    lbl_findings: ' finding',
+    lbl_findings_pl: ' findings',
+    lbl_found: ' found',
+    lbl_found_pl: ' found',
+    rename_placeholder: 'Scan name',
+    detail_modules_title: 'MODULES (click to view details)',
+    no_findings: 'No findings',
+    analyzing: 'Analyzing...',
+    scanning: 'Scanning...',
+  }
+};
+
+let LANG = localStorage.getItem('lang') || 'es';
+function t(key, vars){
+  const str = (LANGS[LANG]||LANGS.es)[key] || (LANGS.es[key]) || key;
+  if(!vars) return str;
+  return str.replace(/\{(\w+)\}/g, (_,k)=> vars[k]??'');
+}
+function applyLang(){
+  // Sync MODS labels and subtitles
+  MODS.forEach(m=>{ m.label=MOD_LABELS[LANG][m.id]||m.label; m.subtitle=MOD_SUBTITLES[LANG][m.id]||''; });
+  // Static elements with data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key=el.getAttribute('data-i18n');
+    el.innerHTML=t(key);
+  });
+  // Placeholder elements with data-i18n-ph
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    el.placeholder=t(el.getAttribute('data-i18n-ph'));
+  });
+  // Lang toggle button active state
+  const btn=document.getElementById('langToggle');
+  if(btn){
+    btn.textContent=LANG==='es'?'ES / EN':'EN / ES';
+    btn.style.color=LANG==='es'?'var(--c-cyan)':'var(--c-green)';
+    btn.style.borderColor=LANG==='es'?'rgba(0,212,255,.35)':'rgba(0,230,118,.35)';
+    btn.style.background=LANG==='es'?'rgba(0,212,255,.06)':'rgba(0,230,118,.06)';
+  }
+  // Sync dynamic module labels
+  MODS.forEach(m=>{ m.label=MOD_LABELS[LANG][m.id]||m.label; });
+  // Rebuild module grid if present
+  if(document.getElementById('mgrid')?.children.length) buildGrid();
+  // Sync all-btn text
+  syncAllBtn();
+  // Sync scan button state
+  if(S.scanning){
+    const btn=document.getElementById('btnScan');
+    if(btn){ btn.innerHTML=t('btn_stop'); }
+  }
+}
+function toggleLang(){
+  LANG = LANG==='es'?'en':'es';
+  localStorage.setItem('lang', LANG);
+  applyLang();
+}
+
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const MOD_LABELS = {
+  es: {
+    emails:'Correos',subdomains:'Subdominios',whois:'WHOIS',ssl:'SSL/TLS',
+    dmarc:'DMARC/SPF',ports:'Puertos',technologies:'Tecnologías',robots:'Robots.txt',
+    dns:'DNS & MX',asn:'ASN',data_leak:'Data Leak',cloud:'Cloud',
+    cybersquatting:'Squatting',favicons:'FAVICON',credentials:'Credenciales',sitemap:'Sitemap',
+  },
+  en: {
+    emails:'Emails',subdomains:'Subdomains',whois:'WHOIS',ssl:'SSL/TLS',
+    dmarc:'DMARC/SPF',ports:'Ports',technologies:'Technologies',robots:'Robots.txt',
+    dns:'DNS & MX',asn:'ASN',data_leak:'Data Leak',cloud:'Cloud',
+    cybersquatting:'Squatting',favicons:'FAVICON',credentials:'Credentials',sitemap:'Sitemap',
+  },
+};
+const MOD_SUBTITLES = {
+  es: {
+    emails:'Enumerando correos via dorks y APIs',subdomains:'Resolviendo subdominios via DNS y certs',
+    whois:'Consultando registros WHOIS del dominio',ssl:'Verificando certificados SSL/TLS',
+    dmarc:'Verificando registros DMARC, SPF y DKIM',ports:'Escaneando puertos TCP/UDP con Nmap',
+    technologies:'Identificando tecnologías y CMS',robots:'Leyendo robots.txt y rutas bloqueadas',
+    dns:'Resolviendo registros DNS, NS y MX',asn:'Consultando ASN y bloques de IP',
+    data_leak:'Buscando en bases de datos de brechas',cloud:'Descubriendo buckets cloud expuestos',
+    cybersquatting:'Detectando dominios typosquatting',favicons:'Hash de favicon para activos relacionados',
+    credentials:'Buscando credenciales exfiltradas',sitemap:'Rastreando sitemap.xml y endpoints',
+  },
+  en: {
+    emails:'Enumerating emails via dorks & APIs',subdomains:'Resolving subdomains via DNS & certs',
+    whois:'Querying WHOIS & domain registration',ssl:'Checking SSL/TLS certificates & expiry',
+    dmarc:'Checking DMARC, SPF & DKIM records',ports:'Scanning open TCP/UDP ports via Nmap',
+    technologies:'Fingerprinting web technologies & CMS',robots:'Fetching robots.txt & blocked paths',
+    dns:'Resolving DNS, NS & MX records',asn:'Looking up ASN & IP blocks',
+    data_leak:'Searching breach databases & leaks',cloud:'Discovering exposed cloud buckets',
+    cybersquatting:'Detecting typosquatting & lookalikes',favicons:'Hashing favicons for related assets',
+    credentials:'Searching exfiltrated credential dumps',sitemap:'Crawling sitemap.xml & endpoints',
+  },
+};
+
+const MODS = [
+  {id:'emails',        label:'Correos',        icon:'@',   subtitle:''},
+  {id:'subdomains',    label:'Subdominios',    icon:'SUB', subtitle:''},
+  {id:'whois',         label:'WHOIS',          icon:'WHS', subtitle:''},
+  {id:'ssl',           label:'SSL/TLS',        icon:'SSL', subtitle:''},
+  {id:'dmarc',         label:'DMARC/SPF',      icon:'MX',  subtitle:''},
+  {id:'ports',         label:'Puertos',        icon:'TCP', subtitle:''},
+  {id:'technologies',  label:'Tecnologías',    icon:'CMS', subtitle:''},
+  {id:'robots',        label:'Robots.txt',     icon:'BOT', subtitle:''},
+  {id:'dns',           label:'DNS & MX',       icon:'DNS', subtitle:''},
+  {id:'asn',           label:'ASN',            icon:'ASN', subtitle:''},
+  {id:'data_leak',     label:'Data Leak',      icon:'DB',  subtitle:''},
+  {id:'cloud',         label:'Cloud',          icon:'S3',  subtitle:''},
+  {id:'cybersquatting',label:'Squatting',      icon:'SQ',  subtitle:''},
+  {id:'favicons',      label:'FAVICON',        icon:'ICO', subtitle:''},
+  {id:'credentials',   label:'Credenciales',   icon:'KEY', subtitle:''},
+  {id:'sitemap',       label:'Sitemap',        icon:'MAP', subtitle:''},
+];
+const MOD_MAP = Object.fromEntries(MODS.map(m=>[m.id,m]));
+const SEVCLS  = {critical:'sc',high:'sh',medium:'sm',low:'sl',info:'si',running:'sr',error:'se',pending:'sp'};
+const BADGECLS= {critical:'bcrit',high:'bhigh',medium:'bmed',low:'blow',info:'binfo',running:'brun',error:'berr',pending:'bpend'};
+const STICO   = {running:'⟳',done:'✔',error:'✖',pending:'·',warning:'⚠'};
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let S = {
+  company:'', domains:[], sel: new Set(MODS.map(m=>m.id)),
+  scanning:false, results:{}, status:{}, elapsed:{}, partialCount:{},
+  expanded:new Set(), done:0, total:0,
+  stats:{critical:0,high:0,medium:0,low:0,info:0},
+  scanId:null, ws:null, currentTab:'scan',
+  startTimes:{},
+};
+let historyData = [];
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Sync MODS labels/subtitles from current lang
+  MODS.forEach(m=>{ m.label=MOD_LABELS[LANG][m.id]||m.label; m.subtitle=MOD_SUBTITLES[LANG][m.id]||''; });
+  applyLang();
+  buildGrid();
+  document.getElementById('iCompany').addEventListener('input', e=>{ S.company=e.target.value; syncBtn(); });
+  document.getElementById('iDomain').addEventListener('keydown', e=>{ if(e.key==='Enter') addDomain(); });
+  document.getElementById('btnAdd').addEventListener('click', addDomain);
+  document.getElementById('btnScan').addEventListener('click', startScan);
+  document.getElementById('btnAll').addEventListener('click', ()=>{
+    const all = S.sel.size===MODS.length;
+    if(all) S.sel.clear(); else MODS.forEach(m=>S.sel.add(m.id));
+    buildGrid(); syncAllBtn();
+  });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeDetail(); closeConfirm(); closeSettings(); }});
+  document.getElementById('settings-overlay').addEventListener('click', function(e){ if(e.target===this) closeSettings(); });
+  const scanList = document.getElementById('scan-list');
+  scanList.addEventListener('dragover', e=>{ e.preventDefault(); scanList.classList.add('drag-over'); });
+  scanList.addEventListener('dragleave', ()=> scanList.classList.remove('drag-over'));
+  scanList.addEventListener('drop', e=>{
+    e.preventDefault(); scanList.classList.remove('drag-over');
+    const files=Array.from(e.dataTransfer.files).filter(f=>f.name.endsWith('.json'));
+    if(!files.length){ toast(t('toast_no_json'),'err'); return; }
+    importScans({files, value:''});
+  });
+  loadHistory();
+});
+
+// ── TABS ───────────────────────────────────────────────────────────────────
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+}
+function switchTab(t){
+  S.currentTab=t;
+  document.getElementById('scan-view').style.display   = t==='scan'?'flex':'none';
+  document.getElementById('history-view').style.display= t==='hist'?'flex':'none';
+  document.getElementById('tab-scan').classList.toggle('active',t==='scan');
+  document.getElementById('tab-hist').classList.toggle('active',t==='hist');
+  if(t==='hist') loadHistory();
+}
+
+// ── DOMAIN TAGS ───────────────────────────────────────────────────────────
+function addDomain(){
+  const inp=document.getElementById('iDomain');
+  const raw=inp.value.trim().toLowerCase();
+  if(!raw) return;
+  const d=raw.replace(/^https?:\/\//,'').split('/')[0];
+  if(d&&!S.domains.includes(d)){ S.domains.push(d); renderTags(); }
+  inp.value=''; syncBtn();
+}
+function removeDomain(d){
+  S.domains=S.domains.filter(x=>x!==d); renderTags(); syncBtn();
+}
+function renderTags(){
+  const w=document.getElementById('tagsWrap');
+  w.innerHTML=S.domains.map(d=>`<span class="tag">${esc(d)}<button class="tag-x" onclick="removeDomain('${esc(d)}')">&#x2715;</button></span>`).join('');
+}
+
+// ── MODULE GRID ──────────────────────────────────────────────────────────
+function buildGrid(){
+  const g=document.getElementById('mgrid'); g.innerHTML='';
+  MODS.forEach(m=>{
+    const on=S.sel.has(m.id);
+    const el=document.createElement('label');
+    el.className='mitem'+(on?' on':'');
+    el.innerHTML=`<input type="checkbox" ${on?'checked':''}><div class="mitem-ic">${esc(m.icon)}</div><span class="mitem-lb">${esc(m.label)}</span>`;
+    el.querySelector('input').addEventListener('change', e=>{
+      if(e.target.checked) S.sel.add(m.id); else S.sel.delete(m.id);
+      el.classList.toggle('on', e.target.checked); syncAllBtn(); syncBtn();
+    });
+    g.appendChild(el);
+  });
+}
+function syncAllBtn(){
+  const btn=document.getElementById('btnAll');
+  const all=S.sel.size===MODS.length;
+  btn.innerHTML=all?t('btn_all_des'):t('btn_all_sel');
+}
+function syncBtn(){
+  const btn=document.getElementById('btnScan');
+  if(!S.scanning) btn.disabled=!S.company||!S.domains.length||!S.sel.size;
+}
+
+// ── SCAN ──────────────────────────────────────────────────────────────────
+function startScan(){
+  if(S.scanning){ stopScan(); return; }
+  if(!S.company||!S.domains.length||!S.sel.size) return;
+  S.scanning=true; S.results={}; S.status={}; S.elapsed={}; S.partialCount={};
+  S.done=0; S.total=S.sel.size; S.expanded=new Set(); S.startTimes={};
+  S.stats={critical:0,high:0,medium:0,low:0,info:0};
+
+  const btn=document.getElementById('btnScan');
+  btn.className='btn-scan scanning'; btn.innerHTML=t('btn_stop'); btn.disabled=false;
+  document.getElementById('statusText').textContent=t('status_scanning');
+  document.getElementById('statusDot').style.background='var(--c-yellow)';
+
+  const pw=document.getElementById('progWrap'); pw.style.display='block';
+  document.getElementById('progFill').style.width='0%';
+  document.getElementById('progPct').textContent='0%';
+  document.getElementById('progLbl').textContent='0 / '+S.total+' modulos';
+  document.getElementById('progCurrent').textContent=t('prog_connecting');
+  document.getElementById('hdrActions')?.remove();
+
+  // Build initial card layout
+  const r=document.getElementById('results'); r.innerHTML='';
+  const scanHdr=document.createElement('div'); scanHdr.className='scan-hdr'; scanHdr.id='scanHdrEl';
+  scanHdr.innerHTML=`<span class="scan-title" id="scan-title-txt">${esc(S.company)}</span><div class="stats-row"><div class="stat"><div class="stat-n nc" id="sn-c">0</div><div class="stat-l">${t('stat_crit')}</div></div><div class="stat"><div class="stat-n nh" id="sn-h">0</div><div class="stat-l">${t('stat_high')}</div></div><div class="stat"><div class="stat-n nm" id="sn-m">0</div><div class="stat-l">${t('stat_med')}</div></div><div class="stat"><div class="stat-n nl" id="sn-l">0</div><div class="stat-l">${t('stat_low')}</div></div><div class="stat"><div class="stat-n ni" id="sn-i">0</div><div class="stat-l">${t('stat_info')}</div></div></div><div class="hdr-actions" id="hdrActions"></div>`;
+  r.appendChild(scanHdr);
+
+  MODS.filter(m=>S.sel.has(m.id)).forEach(m=>{
+    const c=document.createElement('div'); c.id='card-'+m.id; c.className='mcard sp';
+    c.innerHTML=cardHTML(m,'pending',null); bindCard(c,m.id); r.appendChild(c);
+  });
+
+  // Show log panel
+  document.getElementById('scan-log-wrap').classList.add('visible');
+  document.getElementById('scan-log').innerHTML='';
+
+  connectWS();
+}
+
+function stopScan(){
+  if(S.ws){ try{ S.ws.close(); }catch(e){} S.ws=null; }
+  finishScan(S.scanId, S.stats);
+}
+
+function connectWS(){
+  const proto=location.protocol==='https:'?'wss':'ws';
+  const ws=new WebSocket(`${proto}://${location.host}/ws/scan`);
+  S.ws=ws;
+  ws.onopen=()=>{
+    ws.send(JSON.stringify({company:S.company,domains:S.domains,modules:Array.from(S.sel)}));
+    appendLog(t('log_start_conn',{n:S.total}),'info');
+  };
+  ws.onmessage=e=>{ try{ handleMsg(JSON.parse(e.data)); }catch(err){console.error(err);} };
+  ws.onerror=()=>{ finishScan(); toast(t('toast_ws_err'),'err'); };
+  ws.onclose=()=>{ if(S.scanning) finishScan(); };
+}
+
+function handleMsg(msg){
+  if(msg.type==='start'){
+    S.scanId=msg.scan_id;
+    appendLog(t('log_scan_id')+msg.scan_id,'info');
+    return;
+  }
+  if(msg.type==='log'){
+    const isEv = msg.text && (msg.text.includes('[EVIDENCE]') || msg.text.startsWith('[EVIDENCE]'));
+    const isOk = msg.text && (msg.text.includes('✔') || msg.text.startsWith('✔'));
+    const isErr= msg.text && (msg.text.includes('✖') || msg.text.includes('Error'));
+    const cls  = isEv ? 'ev' : isOk ? 'ok' : isErr ? 'err' : '';
+    appendLog('['+msg.module+'] '+msg.text, cls);
+    return;
+  }
+  if(msg.type==='progress'){
+    updateGlobalProg(msg.completed, msg.total, msg.current_label);
+    return;
+  }
+  if(msg.type==='update'){
+    const id=msg.module;
+    S.status[id]=msg.status;
+    if(msg.elapsed!==undefined) S.elapsed[id]=msg.elapsed;
+    if(msg.partial_count!==undefined) S.partialCount[id]=msg.partial_count;
+
+    if(msg.status==='running'){
+      S.startTimes[id]=Date.now();
+      appendLog(t('log_running')+id,'info');
+    } else if(msg.status==='done'&&msg.data){
+      S.results[id]=msg.data;
+      const sev=msg.data.severity||'info';
+      if(S.stats[sev]!==undefined) S.stats[sev]++;
+      if(sev==='critical'||sev==='high') S.expanded.add(id);
+      updateStatNums();
+      appendLog(t('log_done')+id+' ('+msg.partial_count+' findings, '+msg.elapsed+'s)','ok');
+    } else if(msg.status==='error'){
+      S.results[id]={severity:'info',findings:[],tools:[],summary:msg.message||'Error'};
+      appendLog(t('log_err')+id+': '+(msg.message||''),'err');
+    }
+    refreshCard(id);
+  } else if(msg.type==='complete'){
+    finishScan(msg.scan_id, msg.stats);
+    toast(t('toast_scan_ok'),'ok');
+    appendLog(t('log_global_done')+msg.scan_id,'ok');
+    loadHistory();
+  } else if(msg.type==='error'){
+    finishScan(); toast(msg.message||t('toast_ws_err'),'err');
+    appendLog(t('log_global_err')+(msg.message||''),'err');
+  }
+}
+
+function updateGlobalProg(done, total, currentLabel){
+  S.done=done;
+  const pct=total>0?Math.round((done/total)*100):0;
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progPct').textContent=pct+'%';
+  document.getElementById('progLbl').textContent=t('prog_modules',{d:done,t:total});
+  if(currentLabel) document.getElementById('progCurrent').textContent='▶ '+currentLabel;
+}
+
+function updateStatNums(){
+  const m={critical:'sn-c',high:'sn-h',medium:'sn-m',low:'sn-l',info:'sn-i'};
+  Object.entries(m).forEach(([k,id])=>{ const el=document.getElementById(id); if(el) el.textContent=S.stats[k]||0; });
+}
+
+function finishScan(scanId, stats){
+  S.scanning=false;
+  document.getElementById('statusText').textContent=t('status_active');
+  document.getElementById('statusDot').style.background='var(--c-green)';
+  const btn=document.getElementById('btnScan');
+  btn.className='btn-scan'; btn.innerHTML=t('btn_new'); btn.disabled=false;
+  document.getElementById('progFill').style.width='100%';
+  document.getElementById('progPct').textContent='100%';
+  document.getElementById('progCurrent').textContent=t('prog_done');
+  // Show action buttons
+  const act=document.getElementById('hdrActions');
+  if(act && scanId){
+    act.innerHTML=`<button class="btn-sm g" onclick="downloadPDF('${scanId}')">&#8595; PDF</button><button class="btn-sm g" onclick="downloadXLSX('${scanId}')">&#8595; XLS</button><button class="btn-sm" onclick="downloadJSON()">&#8595; JSON</button>`;
+  }
+}
+
+// ── CARDS ──────────────────────────────────────────────────────────────────
+function refreshCard(id){
+  const card=document.getElementById('card-'+id); if(!card) return;
+  const mod=MOD_MAP[id]; const st=S.status[id]||'pending'; const data=S.results[id]||null;
+  const sev=data?.severity||'info';
+  card.className='mcard '+(SEVCLS[st==='done'?sev:st]||'sp');
+  card.innerHTML=cardHTML(mod,st,data); bindCard(card,id);
+}
+
+function bindCard(card,id){
+  const hdr=card.querySelector('.mhdr');
+  if(hdr) hdr.addEventListener('click',()=>{ if(S.expanded.has(id)) S.expanded.delete(id); else S.expanded.add(id); refreshCard(id); });
+}
+
+function cardHTML(mod,st,data){
+  const sev=data?.severity||'info'; const expanded=S.expanded.has(mod.id);
+  const elapsed=S.elapsed[mod.id]; const pcount=S.partialCount[mod.id];
+  const bk=BADGECLS[st==='done'?sev:st]||'bpend';
+  const bt=st==='done'?sev.toUpperCase():st==='running'?'RUNNING':st==='error'?'ERROR':'PENDING';
+  const stIcon=st==='done'?(sev==='critical'||sev==='high'?'⚠':'✔'):st==='running'?'⟳':st==='error'?'✖':'·';
+  const stIconColor=st==='done'?(sev==='critical'?'var(--c-red)':sev==='high'?'var(--c-orange)':'var(--c-green)'):st==='running'?'var(--c-cyan)':st==='error'?'var(--c-red)':'var(--t3)';
+
+  // Summary text
+  let sumText='';
+  if(st==='running') sumText=t('analyzing');
+  else if(st==='error') sumText=data?.summary||t('st_error');
+  else if(st==='done'){
+    const fc=data?.findings?.length||0;
+    if(fc>0){
+      sumText=fc+(fc!==1?t('lbl_findings_pl'):t('lbl_findings'))+(fc!==1?t('lbl_found_pl'):t('lbl_found'));
+    } else {
+      sumText=data?.summary||t('no_findings');
+    }
+    if(elapsed) sumText+=' &mdash; '+elapsed+'s';
+  }
+
+  const hasBody=data&&(data.findings?.length||data.tools?.length);
+
+  let h=`<div class="mhdr"><div class="mhdr-l">`;
+  h+=`<div class="mibox">${esc(mod.icon)}</div>`;
+  h+=`<div class="minfo">`;
+  h+=`<div class="mname">${esc(mod.label)}</div>`;
+  h+=`<div class="msubttl">${esc(mod.subtitle||'')}</div>`;
+  if(sumText) h+=`<div class="msum">${sumText}</div>`;
+  h+=`</div></div>`;
+  h+=`<div class="mhdr-r"><span class="stico" style="color:${stIconColor}">${stIcon}</span><span class="badge ${bk}">${bt}</span>${hasBody?`<span class="chev${expanded?' open':''}">&#9660;</span>`:''}</div></div>`;
+
+  // Running module: progress bar + live feed
+  if(st==='running'){
+    h+=`<div class="mprog"><div class="mprog-bar"><div class="mprog-fill" id="mpfill-${mod.id}" style="width:${pcount?'40':'0'}%"></div><div class="mprog-shimmer"></div></div><div class="mprog-meta"><span class="mprog-count" id="mpcount-${mod.id}">${pcount!==undefined?pcount+' findings':t('scanning')}</span><span class="mprog-elapsed" id="mpelap-${mod.id}"></span></div></div>`;
+    h+=`<div class="mlive" id="mlive-${mod.id}"></div>`;
+  }
+
+  if(expanded&&data) {
+    h+=`<div class="mbody">${bodyHTML(mod.id,data)}</div>`;
+    // Schedule async evidence load after DOM update
+    setTimeout(async()=>{ await refreshGlobalEvidenceIndex(S.scanId); loadEvidencePanel(S.scanId, mod.id); }, 50);
+  }
+  return h;
+}
+
+// ── LOG ────────────────────────────────────────────────────────────────────
+function appendLog(text, cls=''){
+  const log=document.getElementById('scan-log');
+  const line=document.createElement('div'); line.className='log-line'+(cls?' '+cls:'');
+  const ts=new Date().toTimeString().slice(0,8);
+  line.textContent='['+ts+'] '+text;
+  log.appendChild(line);
+  log.scrollTop=log.scrollHeight;
+  // Keep max 200 lines
+  while(log.children.length>200) log.removeChild(log.firstChild);
+}
+function clearLog(){ document.getElementById('scan-log').innerHTML=''; }
+function toggleLog(){
+  const w=document.getElementById('scan-log-wrap');
+  w.classList.toggle('visible');
+}
+
+// ── BODY HTML ──────────────────────────────────────────────────────────────
+function bodyHTML(id,data){
+  let h='';
+  if(data.findings?.length){
+    const crit=data.findings.filter(f=>f.severity==='critical'||f.severity==='high');
+    const rest=data.findings.filter(f=>f.severity!=='critical'&&f.severity!=='high');
+    const toRender=[...crit,...rest].slice(0,35);
+    h+=`<div class="fwrap"><div class="stitle">${t('findings_label')} (${data.findings.length})</div>`;
+    if(id==='data_leak'){
+      const dangerTypes=['passwords','password','credentials','credit cards','financial','ssn','social security'];
+      const sevColors={critical:'var(--c-red)',high:'var(--c-orange)',medium:'var(--c-yellow)',low:'var(--c-green)',info:'var(--c-blue)'};
+      toRender.forEach(f=>{
+        const sev=f.severity||'info';
+        const col=sevColors[sev]||sevColors.info;
+        const records=f.records_fmt||(f.records?Number(f.records).toLocaleString():null);
+        const tags=(f.data_types||[]).slice(0,10).map(dt=>{
+          const isDanger=dangerTypes.some(k=>dt.toLowerCase().includes(k));
+          return `<span class="breach-tag${isDanger?' danger':''}">${esc(dt)}</span>`;
+        }).join('');
+        const badges=[];
+        if(f.is_verified===true) badges.push(`<span class="breach-badge verified">&#10003; VERIFICADO</span>`);
+        if(f.is_verified===false) badges.push(`<span class="breach-badge fabricated">NO VERIFICADO</span>`);
+        if(f.is_sensitive) badges.push(`<span class="breach-badge sensitive">&#9888; SENSIBLE</span>`);
+        if(f.is_fabricated) badges.push(`<span class="breach-badge fabricated">FABRICADO</span>`);
+        if(f.manual) badges.push(`<span class="breach-badge sensitive">MANUAL</span>`);
+        h+=`<div class="breach-card ${sev}">
+          <div class="breach-hdr">
+            <div class="fdot ${sev}" style="flex-shrink:0"></div>
+            <span class="breach-name">${esc(f.breach_title||f.breach_name||f.value||'')}</span>
+            ${f.date?`<span class="breach-meta">&#128197; ${esc(f.date)}</span>`:''}
+            ${records?`<span class="breach-records" style="color:${col}">&#128100; ${esc(records)} registros</span>`:''}
+            <span class="breach-meta" style="margin-left:auto">${esc(f.breach_domain||f.domain||'')}</span>
+          </div>
+          ${badges.length?`<div class="breach-badges" style="margin-bottom:4px">${badges.join('')}</div>`:''}
+          ${tags?`<div class="breach-tags">${tags}</div>`:''}
+          ${f.risk_reason?`<div class="breach-meta" style="margin-top:4px">&#9888; ${esc(f.risk_reason)}</div>`:''}
+          ${f.description?`<div class="breach-desc">${esc(f.description)}</div>`:''}
+          <div class="factions" style="margin-top:7px">
+            <button class="fev-btn" onclick="toggleFindingEv('data_leak','fev-dl-${fi}','${encodeURIComponent(f.breach_name||f.value||('breach_'+fi))}')" title="Adjuntar evidencia">📎 EVIDENCIA</button>
+            <button class="fev-btn" onclick="addFindingNote('fev-dl-${fi}','data_leak','${encodeURIComponent(f.breach_name||f.value||('breach_'+fi))}')" title="Nota">✎ NOTA</button>
+          </div>
+          <div class="fev-inline" id="fev-dl-${fi}-ev"><div class="fev-inline-title">📎 Evidencias adjuntas</div><div id="fev-dl-${fi}-ev-body">Cargando...</div></div>
+          <div class="fev-inline" id="fev-dl-${fi}-note"><div class="fev-inline-title">✎ Nota de contexto</div><div style="display:flex;gap:5px"><input class="fnote-inp" id="fev-dl-${fi}-note-inp" placeholder="Contexto, impacto, pasos para validar..." /><button class="fev-btn" onclick="saveFindingNote('fev-dl-${fi}','data_leak','${encodeURIComponent(f.breach_name||f.value||('breach_'+fi))}')">GUARDAR</button></div></div>
+        </div>`;
+      });
+    } else {
+      toRender.forEach((f,fi)=>{
+        const sev=f.severity||'info';
+        const val=f.value||f.url||f.domain||f.squatted_domain||f.path||f.header||'';
+        const portI=f.port?`Port: ${f.port}/${f.service||''} ${f.version||''}`:'' ;
+        const manBadge=f.manual?`<span style="font-size:9px;padding:1px 5px;background:rgba(255,145,0,.12);color:var(--c-orange);border:1px solid rgba(255,145,0,.3);border-radius:2px;font-family:'Share Tech Mono',monospace;margin-left:4px">MANUAL</span>`:'';
+        const fRef=encodeURIComponent(val||`finding_${fi}`);
+        const fid=`fev-${id}-${fi}`;
+        const evCount=(currentScanEvidenceIndex||[]).filter(e=>e.module===id&&e.finding_ref===decodeURIComponent(fRef)).length;
+        const evCls=evCount>0?'has-ev':'';
+        const evCountBadge=evCount>0?`<span class="fev-count">${evCount}</span>`:'';
+        const urlRefs=(f.evidence_urls||[]).map(u=>`<a href="${esc(u)}" target="_blank" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--c-cyan);display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u)}</a>`).join('');
+        const noteText=f.evidence_note?`<div style="font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--c-yellow);background:rgba(255,215,64,.05);border:1px solid rgba(255,215,64,.15);border-radius:2px;padding:3px 6px;margin-top:4px">📝 ${esc(f.evidence_note)}</div>`:'';
+        h+=`<div class="finding ${sev}" id="${fid}-wrap">
+          <div class="fdot ${sev}"></div>
+          <div class="fcon" style="min-width:0;flex:1">
+            <div class="ftype">${esc((f.type||'').replace(/_/g,' ').toUpperCase())}${manBadge}</div>
+            ${val?`<div class="fval">${esc(String(val))}</div>`:''}
+            ${portI?`<div class="fval">${esc(portI)}</div>`:''}
+            ${f.description?`<div class="fdesc">${esc(f.description)}</div>`:''}
+            ${urlRefs}${noteText}
+            <div class="factions">
+              <button class="fev-btn ${evCls}" onclick="toggleFindingEv('${id}','${fid}','${fRef}')" title="Adjuntar evidencia a este hallazgo">
+                📎 EVIDENCIA ${evCountBadge}
+              </button>
+              <button class="fev-btn" onclick="addFindingUrl('${fid}')" title="Agregar URL de referencia">🔗 URL</button>
+              <button class="fev-btn" onclick="addFindingNote('${fid}','${id}','${fRef}')" title="Agregar nota">✎ NOTA</button>
+            </div>
+            <div class="fev-inline" id="${fid}-ev"><div class="fev-inline-title">📎 Evidencias adjuntas</div><div id="${fid}-ev-body">Cargando...</div></div>
+            <div class="fev-inline" id="${fid}-url"><div class="fev-inline-title">🔗 Agregar URL de referencia</div><div style="display:flex;gap:5px;align-items:center"><input class="furl-inp" id="${fid}-url-inp" placeholder="https://..." /><button class="fev-btn" onclick="saveFindingUrl('${fid}','${id}','${fRef}')">GUARDAR</button></div></div>
+            <div class="fev-inline" id="${fid}-note"><div class="fev-inline-title">✎ Agregar nota de contexto</div><div style="display:flex;gap:5px;align-items:center"><input class="fnote-inp" id="${fid}-note-inp" placeholder="Descripción, contexto, o pasos de reproducción..." /><button class="fev-btn" onclick="saveFindingNote('${fid}','${id}','${fRef}')">GUARDAR</button></div></div>
+          </div>
+        </div>`;
+      });
+    }
+    if(data.findings.length>35) h+=`<div style="text-align:center;padding:8px;font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3)">${t('findings_more',{n:data.findings.length-35})}</div>`;
+    h+=`</div>`;
+  }
+  h+=dataTables(id,data);
+  if(data.tools?.length){
+    h+=`<div class="toolwrap"><div class="stitle">${t('tools_label')}</div><div class="tlist">`;
+    const seen=new Set();
+    data.tools.slice(0,20).forEach(tl=>{
+      const key=tl.tool+(tl.domain||''); if(seen.has(key)) return; seen.add(key);
+      const cls=(tl.status==='ok'||tl.status==='executed')?'tok':'tman';
+      const dot=(tl.status==='ok'||tl.status==='executed')?'ok':'manual';
+      const inner=tl.url?`<a href="${esc(tl.url)}" target="_blank">${esc(tl.tool)}</a>`:esc(tl.tool);
+      h+=`<div class="tchip ${cls}"><div class="tbul ${dot}"></div>${inner}</div>`;
+    });
+    h+=`</div></div>`;
+  }
+  // Evidence panel — always shown, loads async
+  h+=`<div class="ev-panel" id="ev-panel-${id}">
+    <div class="ev-panel-hdr">
+      <span class="ev-panel-title">&#128248; EVIDENCIAS</span>
+      <button class="ev-upload-btn" onclick="openEvUpload('${id}')">&#43; AGREGAR</button>
+    </div>
+    <div id="ev-panel-body-${id}"><div class="ev-empty">Cargando...</div></div>
+  </div>`;
+  return h;
+}
+
+function dataTables(id,data){
+  let h='';
+  if(id==='subdomains'&&data.active_subdomains?.length)
+    h+=tbl('SUBDOMINIOS ACTIVOS ('+data.active_subdomains.length+')',['Subdominio','IP','HTTP'],data.active_subdomains.slice(0,20).map(s=>[{v:s.subdomain,c:'ta'},{v:s.ip||'-'},{v:s.status_code||'-',c:s.status_code===200?'tg':'tw'}]));
+  if(id==='ports'&&data.all_open_ports?.length)
+    h+=tbl('PUERTOS ABIERTOS ('+data.all_open_ports.length+')',['Dominio','Puerto','Servicio','Version','Riesgo'],data.all_open_ports.slice(0,25).map(p=>[{v:p.domain},{v:p.port,c:'ta'},{v:p.service,c:'tc'},{v:p.version||'-'},{v:(p.risk||'-').toUpperCase(),c:p.risk==='critical'?'td':p.risk==='high'?'tw':''}]));
+  if(id==='ssl'&&data.certificates?.length)
+    h+=tbl('CERTIFICADOS SSL/TLS',['Dominio','Emisor','Vence','Dias','TLS'],data.certificates.filter(c=>c.status==='ok').slice(0,10).map(c=>[{v:c.domain,c:'ta'},{v:c.issuer||'-'},{v:(c.valid_until||'-').split(' ').slice(0,3).join(' ')},{v:c.days_left??'-',c:c.days_left<30?'td':c.days_left<90?'tw':'tg'},{v:c.tls_version||'-'}]));
+  if(id==='whois'&&data.whois_data?.length)
+    h+=tbl('DATOS WHOIS',['Dominio','Registrar','Pais','Expira'],data.whois_data.map(w=>[{v:w.domain,c:'ta'},{v:w.registrar||'-'},{v:w.country||'-'},{v:(w.expiry||'-').split('T')[0]}]));
+  if(id==='dmarc'){
+    const rows=[];
+    (data.dmarc_records||[]).forEach(d=>rows.push([{v:d.domain,c:'ta'},{v:'DMARC'},{v:d.has_dmarc?'SI':'NO',c:d.has_dmarc?'tg':'td'},{v:(d.policy||'N/A').toUpperCase(),c:d.policy==='reject'?'tg':d.policy==='quarantine'?'tw':'td'}]));
+    (data.spf_records||[]).forEach(d=>rows.push([{v:d.domain,c:'ta'},{v:'SPF'},{v:d.has_spf?'SI':'NO',c:d.has_spf?'tg':'td'},{v:d.has_spf?'CONFIGURADO':'AUSENTE',c:d.has_spf?'tg':'td'}]));
+    if(rows.length) h+=tbl('DMARC / SPF',['Dominio','Tipo','Estado','Politica'],rows);
+  }
+  if(id==='cybersquatting'&&data.active_variants?.length)
+    h+=tbl('VARIANTES ACTIVAS ('+data.active_variants.length+')',['Variante','Tipo','IPs','Riesgo'],data.active_variants.slice(0,20).map(v=>[{v:v.domain,c:'td'},{v:v.fuzzer||'-'},{v:(v.ips||[]).join(', ')||'-'},{v:(v.risk||'-').toUpperCase(),c:v.risk==='critical'?'td':'tw'}]));
+  if(id==='asn'&&data.ip_blocks?.length)
+    h+=tbl('BLOQUES ASN',['Dominio','IP','ASN','Org'],data.ip_blocks.map(b=>[{v:b.domain,c:'ta'},{v:b.ip||'-'},{v:b.asn?'AS'+b.asn:'-',c:'tc'},{v:b.name||'-'}]));
+  if(id==='technologies'){
+    const techs=[]; (data.technology_scans||[]).forEach(sc=>(sc.technologies||[]).forEach(t=>techs.push(t)));
+    if(techs.length) h+=tbl('TECNOLOGIAS ('+techs.length+')',['Tecnologia','Categoria','Confianza'],techs.slice(0,20).map(t=>[{v:t.name,c:'tc'},{v:t.category||'-'},{v:(t.confidence||'-').toUpperCase(),c:t.confidence==='high'?'tg':''}]));
+  }
+  if(id==='cloud'&&data.exposed_buckets?.length)
+    h+=tbl('S3 BUCKETS',['Bucket','Estado','Acceso'],data.exposed_buckets.map(b=>[{v:b.bucket,c:'tc'},{v:String(b.status)},{v:b.public?'PUBLICO':'PRIVADO',c:b.public?'td':'tg'}]));
+  return h;
+}
+
+function tbl(title,headers,rows){
+  let h=`<div class="twrap"><div class="stitle">${esc(title)}</div><table><thead><tr>`;
+  headers.forEach(hd=>{ h+=`<th>${esc(hd)}</th>`; }); h+=`</tr></thead><tbody>`;
+  rows.forEach(row=>{ h+=`<tr>`; row.forEach(cell=>{ h+=`<td${cell.c?' class="'+cell.c+'"':''}>${esc(String(cell.v??''))}</td>`; }); h+=`</tr>`; });
+  h+=`</tbody></table></div>`; return h;
+}
+
+// ── HISTORY ────────────────────────────────────────────────────────────────
+async function loadHistory(){
+  try{
+    const res = await fetch('/api/scans');
+    historyData = await res.json();
+    renderHistory();
+    const badge=document.getElementById('hist-badge');
+    if(historyData.length){ badge.style.display='inline'; badge.textContent=historyData.length; }
+    else badge.style.display='none';
+  }catch(e){ console.error(e); }
+}
+
+function renderHistory(){
+  const list=document.getElementById('scan-list');
+  if(!historyData.length){
+    list.innerHTML=`<div class="empty-history"><p>${t('hist_empty')}</p></div>`; return;
+  }
+  list.innerHTML='';
+  historyData.forEach(scan=>{
+    const el=document.createElement('div'); el.className='scan-item'; el.id='si-'+scan.id;
+    el.innerHTML=scanItemHTML(scan);
+    bindScanItem(el, scan);
+    list.appendChild(el);
+  });
+}
+
+function scanItemHTML(scan){
+  const st=scan.stats||{}; const dt=formatDate(scan.timestamp);
+  const doms=(scan.domains||[]).join(', ')||'N/A';
+  const badge=(sev)=>`<span class="si-stat ${sev==='critical'?'nc':sev==='high'?'nh':sev==='medium'?'nm':sev==='low'?'nl':'ni'}">${st[sev]||0}</span>`;
+  const importedBadge = scan.imported ? `<span class="import-badge">IMPORTADO</span>` : '';
+  return `
+    <div class="si-hdr">
+      <div class="si-left">
+        <div>
+          <div class="si-name">${esc(scan.name||scan.company||'N/A')}${importedBadge}</div>
+          <div class="si-meta">${esc(doms)} &mdash; ${dt}</div>
+        </div>
+      </div>
+      <div class="si-stats">${badge('critical')}${badge('high')}${badge('medium')}${badge('low')}</div>
+      <div class="si-actions">
+        <button class="icon-btn pdf-btn" title="Descargar PDF" onclick="event.stopPropagation();downloadPDF('${scan.id}')">PDF</button>
+        <button class="icon-btn xlsx-btn" title="Exportar Excel" onclick="event.stopPropagation();downloadXLSX('${scan.id}')">XLS</button>
+        <button class="icon-btn" title="Descargar JSON" onclick="event.stopPropagation();downloadScanJSON('${scan.id}')">JSON</button>
+        <button class="icon-btn manual-btn" title="Agregar hallazgos manuales" onclick="event.stopPropagation();openManual('${scan.id}','${esc(scan.name||scan.company||'')}')">&#9998;</button>
+        <button class="icon-btn del" title="Eliminar" onclick="event.stopPropagation();confirmDelete('${scan.id}','${esc(scan.name||scan.company||'')}')">DEL</button>
+        <span class="chev" id="chev-${scan.id}">&#9660;</span>
+      </div>
+    </div>
+    <div class="si-body" id="body-${scan.id}"></div>
+  `;
+}
+
+function bindScanItem(el, scan){
+  el.querySelector('.si-hdr').addEventListener('click', ()=> toggleScanItem(scan.id));
+}
+
+async function toggleScanItem(id){
+  const body=document.getElementById('body-'+id);
+  const chev=document.getElementById('chev-'+id);
+  if(body.classList.contains('open')){ body.classList.remove('open'); chev.classList.remove('open'); return; }
+  try{
+    const res=await fetch(`/api/scans/${id}`);
+    const data=await res.json();
+    body.innerHTML=buildScanBody(data, id);
+    body.classList.add('open'); chev.classList.add('open');
+    body.querySelectorAll('.mod-mini').forEach(mc=>{
+      mc.addEventListener('click',()=>{
+        const mid=mc.dataset.mod;
+        const mdata=data.modules?.[mid];
+        if(mdata) openModuleDetail(mid, mdata, id);
+      });
+    });
+  }catch(e){ toast('Error cargando escaneo','err'); }
+}
+
+function buildScanBody(data, scanId){
+  const modules=data.modules||{}; const meta=data.meta||{};
+  const company=meta.company||'N/A'; const domains=(meta.domains||[]).join(', ');
+  const dt=formatDate(meta.timestamp);
+  let modCards='';
+  Object.entries(modules).forEach(([mid,md])=>{
+    const mod=MOD_MAP[mid]; if(!mod) return;
+    const sev=md?.severity||'info'; const nf=md?.findings?.length||0;
+    modCards+=`<div class="mod-mini sev-${sev}" data-mod="${mid}" title="${esc(mod.label)} - ${nf} hallazgos">`+
+      `<div class="mod-mini-l"><span class="mod-mini-ic">${esc(mod.icon)}</span><span class="mod-mini-nm">${esc(mod.label)}</span></div>`+
+      `<div class="mod-mini-dot"></div></div>`;
+  });
+  return `<div class="si-body-inner">
+    <div class="rename-wrap">
+      <input type="text" id="rn-${scanId}" value="${esc(meta.name||company)}" placeholder="${t('rename_placeholder')}"/>
+      <button class="btn-sm" onclick="renameScan('${scanId}')">${t('hist_rename')}</button>
+    </div>
+    <div class="stitle">${t('detail_modules_title')}</div>
+    <div class="mod-mini-grid">${modCards}</div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3);margin-top:4px">
+      ${Object.keys(modules).length} ${t('mod_modules_run')} &mdash; ${esc(domains)} &mdash; ${dt}
+    </div>
+  </div>`;
+}
+
+// ── MODULE DETAIL MODAL ────────────────────────────────────────────────────
+function openModuleDetail(mid, mdata, scanId){
+  const mod=MOD_MAP[mid];
+  document.getElementById('dm-title').textContent=`// [${mod?.icon||'?'}] ${(mod?.label||mid).toUpperCase()}`;
+  document.getElementById('dm-body').innerHTML=bodyHTML(mid, mdata);
+  document.getElementById('detail-overlay').classList.add('show');
+  // Load evidence for this module
+  const sid = scanId || S.scanId;
+  if(sid) setTimeout(async()=>{ await refreshGlobalEvidenceIndex(sid); loadEvidencePanel(sid, mid); }, 50);
+}
+function closeDetail(){ document.getElementById('detail-overlay').classList.remove('show'); }
+document.getElementById('detail-overlay').addEventListener('click',e=>{ if(e.target===document.getElementById('detail-overlay')) closeDetail(); });
+
+// ── SCAN ACTIONS ───────────────────────────────────────────────────────────
+async function downloadPDF(scanId){
+  toast(t('toast_pdf_gen'));
+  try{
+    const res=await fetch(`/api/scans/${scanId}/pdf`);
+    if(!res.ok) throw new Error(await res.text());
+    const blob=await res.blob();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    const cd=res.headers.get('Content-Disposition')||'';
+    const fname=cd.match(/filename="([^"]+)"/)?.[1]||`osint_report_${scanId}.pdf`;
+    a.download=fname; a.click(); URL.revokeObjectURL(a.href);
+    toast(t('toast_pdf_ok'),'ok');
+  }catch(e){ toast(t('toast_pdf_err')+e.message,'err'); }
+}
+
+async function downloadScanJSON(scanId){
+  try{
+    const res=await fetch(`/api/scans/${scanId}`);
+    const data=await res.json();
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`osint_${(data.meta?.company||scanId).replace(/\s+/g,'_')}_${(data.meta?.timestamp||'').slice(0,10)}.json`;
+    a.click(); URL.revokeObjectURL(a.href);
+    toast(t('toast_json_ok'),'ok');
+  }catch(e){ toast('Error','err'); }
+}
+
+function downloadJSON(){
+  const scanData={meta:{company:S.company,domains:S.domains,timestamp:new Date().toISOString(),id:S.scanId},stats:S.stats,modules:S.results};
+  const blob=new Blob([JSON.stringify(scanData,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`osint_${S.company.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast(t('toast_json_exp'),'ok');
+}
+
+async function renameScan(scanId){
+  const inp=document.getElementById('rn-'+scanId);
+  const name=inp?.value?.trim(); if(!name) return;
+  try{
+    await fetch(`/api/scans/${scanId}/rename`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+    toast(t('toast_rename_ok'),'ok'); await loadHistory();
+  }catch(e){ toast(t('toast_rename_err'),'err'); }
+}
+
+// ── EVIDENCE SYSTEM ────────────────────────────────────────────────────────
+let _evState = { scanId: null, modId: null, items: [], currentId: null };
+
+const EV_ICONS = {
+  'image/png':'🖼', 'image/jpeg':'🖼', 'image/gif':'🖼', 'image/webp':'🖼',
+  'text/plain':'📄', 'application/json':'📋', 'text/csv':'📊',
+  'application/pdf':'📕', 'default':'📎'
+};
+function evIcon(mt){ return EV_ICONS[mt]||EV_ICONS.default; }
+function evFmt(bytes){ return bytes<1024?bytes+'B':bytes<1024*1024?(bytes/1024).toFixed(1)+'KB':(bytes/1024/1024).toFixed(1)+'MB'; }
+
+async function loadEvidencePanel(scanId, modId){
+  const container = document.getElementById(`ev-panel-body-${modId}`);
+  if(!container) return;
+  try{
+    const res = await fetch(`/api/scans/${scanId}/evidence?module=${modId}`);
+    const items = await res.json();
+    _evState.scanId = scanId;
+    renderEvidencePanel(container, scanId, modId, items);
+  }catch(e){
+    if(container) container.innerHTML=`<div class="ev-empty" style="color:var(--t3)">No se pudo cargar evidencias</div>`;
+  }
+}
+
+function renderEvidencePanel(container, scanId, modId, items){
+  if(!container) return;
+  if(!items.length){
+    container.innerHTML=`<div class="ev-empty">Sin evidencias — click en <strong style="color:var(--c-cyan)">+ AGREGAR</strong> para subir capturas o archivos</div>`;
+    return;
+  }
+  let h=`<div class="ev-grid">`;
+  items.forEach(ev=>{
+    const icon = ev.is_image ? '' : evIcon(ev.media_type);
+    const thumb = ev.is_image
+      ? `<img class="ev-item-img" src="/api/scans/${scanId}/evidence/${ev.id}/file" loading="lazy" alt="${esc(ev.filename)}">`
+      : `<div class="ev-item-thumb">${icon}</div>`;
+    const badge = ev.source==='auto'
+      ? `<span class="ev-item-badge auto">AUTO</span>`
+      : `<span class="ev-item-badge manual">MANUAL</span>`;
+    const caption = ev.caption||ev.filename;
+    h+=`<div class="ev-item" onclick="_openEvViewer('${scanId}','${ev.id}')">
+      ${thumb}${badge}
+      <div class="ev-item-meta">
+        <div class="ev-item-name">${esc(ev.filename)}</div>
+        <div class="ev-item-caption">${esc(caption)}</div>
+      </div>
+    </div>`;
+  });
+  h+=`</div>`;
+  container.innerHTML = h;
+}
+
+async function _openEvViewer(scanId, evId){
+  const res = await fetch(`/api/scans/${scanId}/evidence`);
+  const items = await res.json();
+  const ev = items.find(e=>e.id===evId);
+  if(!ev) return;
+  _evState.currentId = evId;
+  _evState.scanId = scanId;
+
+  const title = document.getElementById('evv-title');
+  const badge = document.getElementById('evv-badge');
+  const body  = document.getElementById('evv-body');
+  const dlBtn = document.getElementById('evv-dl-btn');
+
+  title.textContent = ev.caption || ev.filename;
+  badge.textContent = ev.source==='auto'?'AUTO':'MANUAL';
+  badge.className = `evv-badge ${ev.source==='auto'?'auto':'manual'}`;
+  dlBtn.href = `/api/scans/${scanId}/evidence/${evId}/file`;
+  dlBtn.download = ev.filename;
+
+  let contentHTML = '';
+  if(ev.is_image){
+    contentHTML = `<img class="evv-img" src="/api/scans/${scanId}/evidence/${evId}/file" alt="${esc(ev.filename)}">`;
+  } else if(ev.is_text){
+    try{
+      const pr = await fetch(`/api/scans/${scanId}/evidence/${evId}/preview`);
+      const data = await pr.json();
+      const truncNote = data.truncated?`<div style="color:var(--c-yellow);font-size:9px;font-family:'Share Tech Mono',monospace;margin-bottom:6px">⚠ Contenido truncado — descarga el archivo completo</div>`:'';
+      contentHTML = truncNote + `<pre class="evv-text">${esc(data.content)}</pre>`;
+    }catch(e){ contentHTML=`<div class="ev-empty">Error cargando contenido</div>`; }
+  } else {
+    contentHTML = `<div class="ev-empty" style="padding:30px;font-size:32px">${evIcon(ev.media_type)}<br><br><span style="font-size:12px;font-family:'Share Tech Mono',monospace;color:var(--t2)">${esc(ev.filename)}</span><br><span style="font-size:10px;color:var(--t3)">${evFmt(ev.size)}</span></div>`;
+  }
+
+  body.innerHTML = contentHTML + `
+    <div class="evv-caption-row">
+      <input class="evv-caption-input" id="evv-caption-inp" value="${esc(ev.caption||'')}" placeholder="Descripción de la evidencia..."/>
+    </div>
+    <div class="evv-meta">
+      <span>📁 ${esc(ev.filename)}</span>
+      <span>📦 ${evFmt(ev.size)}</span>
+      <span>🕒 ${(ev.timestamp||'').slice(0,19).replace('T',' ')}</span>
+      ${ev.tool?`<span>🔧 ${esc(ev.tool)}</span>`:''}
+      ${ev.finding_ref?`<span>🎯 ${esc(ev.finding_ref)}</span>`:''}
+    </div>`;
+
+  document.getElementById('ev-viewer-overlay').classList.add('show');
+}
+
+function evViewerBgClose(e){ if(e.target.id==='ev-viewer-overlay') closeEvViewer(); }
+function closeEvViewer(){ document.getElementById('ev-viewer-overlay').classList.remove('show'); }
+
+async function saveEvCaption(){
+  if(!_evState.currentId||!_evState.scanId) return;
+  const cap = document.getElementById('evv-caption-inp')?.value||'';
+  await fetch(`/api/scans/${_evState.scanId}/evidence/${_evState.currentId}`,{
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({caption:cap})
+  });
+  document.getElementById('evv-title').textContent = cap;
+  toast('Caption guardado','ok');
+  // Reload panel if visible
+  const mod = document.querySelector('[id^="ev-panel-body-"]');
+  if(mod){
+    const modId = mod.id.replace('ev-panel-body-','');
+    loadEvidencePanel(_evState.scanId, modId);
+  }
+}
+
+async function deleteEvidence(){
+  if(!_evState.currentId||!_evState.scanId) return;
+  if(!confirm('¿Eliminar esta evidencia?')) return;
+  await fetch(`/api/scans/${_evState.scanId}/evidence/${_evState.currentId}`,{method:'DELETE'});
+  closeEvViewer();
+  toast('Evidencia eliminada','ok');
+  // Reload all visible evidence panels
+  document.querySelectorAll('[id^="ev-panel-body-"]').forEach(panel=>{
+    const modId = panel.id.replace('ev-panel-body-','');
+    loadEvidencePanel(_evState.scanId, modId);
+  });
+}
+
+// ── EVIDENCE UPLOAD MODAL (inline in ev-panel) ───────────────────────────
+let _evUploadState = { scanId:null, modId:null };
+function openEvUpload(modId){
+  _evUploadState.modId = modId;
+  _evUploadState.scanId = _evState.scanId || S.scanId;
+  if(!_evUploadState.scanId){ toast('Guarda el escaneo primero','err'); return; }
+
+  // Show upload UI inside the panel
+  const container = document.getElementById(`ev-panel-body-${modId}`);
+  if(!container) return;
+  container.innerHTML = `
+    <div style="padding:12px">
+      <div class="ev-dropzone" id="ev-dz-${modId}"
+           onclick="document.getElementById('ev-file-input-${modId}').click()"
+           ondragover="evDragOver(event,'${modId}')"
+           ondragleave="evDragLeave(event,'${modId}')"
+           ondrop="evDrop(event,'${modId}')">
+        <div class="ev-dropzone-icon">📎</div>
+        <div class="ev-dropzone-text">ARRASTRA ARCHIVOS O CLICK PARA SELECCIONAR</div>
+        <div class="ev-dropzone-sub">PNG, JPG, TXT, JSON, CSV, PDF — máx. 15MB</div>
+        <input type="file" id="ev-file-input-${modId}" multiple accept="image/*,.txt,.json,.csv,.pdf"
+               style="display:none" onchange="evFilePicked(event,'${modId}')">
+      </div>
+      <div style="margin-top:8px">
+        <label class="mm-field">
+          <label style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t3);letter-spacing:1px">DESCRIPCIÓN / CAPTION (opcional)</label>
+          <input type="text" id="ev-caption-${modId}" placeholder="Ej: Screenshot de subdominio activo" style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--t1);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);padding:6px 9px;width:100%;box-sizing:border-box"/>
+        </label>
+      </div>
+      <div id="ev-upload-list-${modId}" style="margin-top:8px;display:flex;flex-direction:column;gap:4px"></div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn-sm" style="flex:1" onclick="loadEvidencePanel('${_evUploadState.scanId}','${modId}')">CANCELAR</button>
+      </div>
+    </div>`;
+}
+
+function evDragOver(e, modId){ e.preventDefault(); document.getElementById('ev-dz-'+modId)?.classList.add('dragover'); }
+function evDragLeave(e, modId){ document.getElementById('ev-dz-'+modId)?.classList.remove('dragover'); }
+function evDrop(e, modId){
+  e.preventDefault();
+  document.getElementById('ev-dz-'+modId)?.classList.remove('dragover');
+  const files = Array.from(e.dataTransfer?.files||[]);
+  if(files.length) _uploadEvidenceFiles(files, modId);
+}
+function evFilePicked(e, modId){
+  const files = Array.from(e.target.files||[]);
+  if(files.length) _uploadEvidenceFiles(files, modId);
+}
+
+async function _uploadEvidenceFiles(files, modId){
+  const scanId = _evUploadState.scanId;
+  const caption = document.getElementById('ev-caption-'+modId)?.value?.trim()||'';
+  const listEl  = document.getElementById('ev-upload-list-'+modId);
+  for(const file of files){
+    const rowId = 'ev-row-'+Math.random().toString(36).slice(2);
+    if(listEl){
+      const row = document.createElement('div');
+      row.id = rowId;
+      row.style.cssText='display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:5px 8px;font-family:monospace;font-size:10px;color:var(--t2)';
+      row.innerHTML=`<span class="spin"></span><span style="flex:1">${esc(file.name)}</span><span>Subiendo...</span>`;
+      listEl.appendChild(row);
+    }
+    try{
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('module', modId);
+      fd.append('caption', caption || file.name);
+      fd.append('source', 'manual');
+      const res = await fetch(`/api/scans/${scanId}/evidence`, {method:'POST', body:fd});
+      if(!res.ok) throw new Error(await res.text());
+      const entry = await res.json();
+      const row = document.getElementById(rowId);
+      if(row){
+        row.querySelector('.spin')?.remove();
+        row.innerHTML=`<span style="color:var(--c-green)">✓</span><span style="flex:1">${esc(file.name)}</span><span style="color:var(--c-green)">${evFmt(entry.size)}</span>`;
+      }
+      toast(`Evidencia subida: ${file.name}`,'ok');
+    }catch(e){
+      const row = document.getElementById(rowId);
+      if(row){ row.style.borderColor='rgba(255,23,68,.3)'; row.innerHTML=`<span style="color:var(--c-red)">✖</span><span style="flex:1">${esc(file.name)}</span><span style="color:var(--c-red)">${esc(e.message)}</span>`; }
+      toast(`Error: ${e.message}`,'err');
+    }
+  }
+  // Reload panel after uploads
+  setTimeout(()=>loadEvidencePanel(scanId, modId), 500);
+}
+
+
+// ── PER-FINDING EVIDENCE SYSTEM ──────────────────────────────────────────────
+let currentScanEvidenceIndex = [];
+
+async function refreshGlobalEvidenceIndex(scanId){
+  try{
+    const res = await fetch(`/api/scans/${scanId}/evidence`);
+    if(res.ok) currentScanEvidenceIndex = await res.json();
+  }catch(e){}
+}
+
+function toggleFindingEv(modId, fid, findingRef){
+  const panel = document.getElementById(`${fid}-ev`);
+  if(!panel) return;
+  if(panel.classList.contains('open')){
+    panel.classList.remove('open'); return;
+  }
+  // Close URL and note panels
+  document.getElementById(`${fid}-url`)?.classList.remove('open');
+  document.getElementById(`${fid}-note`)?.classList.remove('open');
+  panel.classList.add('open');
+  _loadFindingEvidence(modId, fid, findingRef);
+}
+
+async function _loadFindingEvidence(modId, fid, findingRef){
+  const scanId = _evState.scanId || S.scanId;
+  if(!scanId){ document.getElementById(`${fid}-ev-body`).innerHTML='<span style="color:var(--t3);font-size:9px;font-family:monospace">Guarda el escaneo primero</span>'; return; }
+  const bodyEl = document.getElementById(`${fid}-ev-body`);
+  if(!bodyEl) return;
+  const ref = decodeURIComponent(findingRef);
+  const items = (currentScanEvidenceIndex||[]).filter(e=>e.module===modId && e.finding_ref===ref);
+  
+  let h = '';
+  if(!items.length){
+    h = `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:7px">Sin evidencias para este hallazgo</div>`;
+  } else {
+    h += `<div class="fev-thumb-row">`;
+    items.forEach(ev=>{
+      if(ev.is_image){
+        h+=`<img class="fev-thumb" src="/api/scans/${scanId}/evidence/${ev.id}/file" title="${esc(ev.caption||ev.filename)}" onclick="_openEvViewer('${scanId}','${ev.id}')">`;
+      } else {
+        h+=`<div class="fev-file-chip" onclick="_openEvViewer('${scanId}','${ev.id}')" title="${esc(ev.caption||ev.filename)}">${evIcon(ev.media_type)} ${esc((ev.caption||ev.filename).slice(0,20))}</div>`;
+      }
+    });
+    h += `</div>`;
+  }
+  // Upload zone for this finding
+  h += `<div style="margin-top:7px">
+    <div class="ev-dropzone" style="padding:10px" 
+         onclick="document.getElementById('fev-file-${fid}').click()"
+         ondragover="evDragOver(event,'fev-upload-dz-${fid}')" 
+         ondragleave="evDragLeave(event,'fev-upload-dz-${fid}')"
+         ondrop="evDropFinding(event,'${modId}','${fid}','${findingRef}')">
+      <div class="ev-dropzone-icon" style="font-size:18px">📎</div>
+      <div class="ev-dropzone-text" style="font-size:9px">ARRASTRA O CLICK — PNG, JPG, PDF, TXT</div>
+      <input type="file" id="fev-file-${fid}" multiple accept="image/*,.txt,.json,.csv,.pdf"
+             style="display:none" onchange="evFilePickedFinding(event,'${modId}','${fid}','${findingRef}')">
+    </div>
+  </div>`;
+  bodyEl.innerHTML = h;
+}
+
+function addFindingUrl(fid){
+  const panel = document.getElementById(`${fid}-url`);
+  if(!panel) return;
+  const isOpen = panel.classList.contains('open');
+  document.getElementById(`${fid}-ev`)?.classList.remove('open');
+  document.getElementById(`${fid}-note`)?.classList.remove('open');
+  if(isOpen) panel.classList.remove('open');
+  else { panel.classList.add('open'); document.getElementById(`${fid}-url-inp`)?.focus(); }
+}
+
+function addFindingNote(fid, modId, findingRef){
+  const panel = document.getElementById(`${fid}-note`);
+  if(!panel) return;
+  const isOpen = panel.classList.contains('open');
+  document.getElementById(`${fid}-ev`)?.classList.remove('open');
+  document.getElementById(`${fid}-url`)?.classList.remove('open');
+  if(isOpen) panel.classList.remove('open');
+  else { panel.classList.add('open'); document.getElementById(`${fid}-note-inp`)?.focus(); }
+}
+
+async function saveFindingUrl(fid, modId, findingRef){
+  const inp = document.getElementById(`${fid}-url-inp`);
+  const url = inp?.value?.trim();
+  if(!url || !url.startsWith('http')){ toast('URL inválida','err'); return; }
+  const scanId = _evState.scanId || S.scanId;
+  if(!scanId){ toast('Guarda el escaneo primero','err'); return; }
+  // Store URL as a text evidence file
+  const ref = decodeURIComponent(findingRef);
+  const blob = new Blob([`URL de referencia: ${url}
+Hallazgo: ${ref}
+Módulo: ${modId}`],{type:'text/plain'});
+  const fd = new FormData();
+  fd.append('file', blob, 'url_referencia.txt');
+  fd.append('module', modId);
+  fd.append('finding_ref', ref);
+  fd.append('caption', url);
+  fd.append('source', 'manual');
+  try{
+    const res = await fetch(`/api/scans/${scanId}/evidence`,{method:'POST',body:fd});
+    if(!res.ok) throw new Error(await res.text());
+    const entry = await res.json();
+    currentScanEvidenceIndex.push(entry);
+    inp.value='';
+    document.getElementById(`${fid}-url`)?.classList.remove('open');
+    // Update the finding button to show it has evidence
+    const btn = document.querySelector(`#${fid}-wrap .fev-btn`);
+    if(btn){ btn.classList.add('has-ev'); }
+    toast('URL guardada como evidencia','ok');
+  }catch(e){ toast('Error: '+e.message,'err'); }
+}
+
+async function saveFindingNote(fid, modId, findingRef){
+  const inp = document.getElementById(`${fid}-note-inp`);
+  const note = inp?.value?.trim();
+  if(!note){ toast('Escribe una nota primero','err'); return; }
+  const scanId = _evState.scanId || S.scanId;
+  if(!scanId){ toast('Guarda el escaneo primero','err'); return; }
+  const ref = decodeURIComponent(findingRef);
+  const blob = new Blob([note],{type:'text/plain'});
+  const fd = new FormData();
+  fd.append('file', blob, 'nota_hallazgo.txt');
+  fd.append('module', modId);
+  fd.append('finding_ref', ref);
+  fd.append('caption', note.slice(0,80));
+  fd.append('source', 'manual');
+  try{
+    const res = await fetch(`/api/scans/${scanId}/evidence`,{method:'POST',body:fd});
+    if(!res.ok) throw new Error(await res.text());
+    const entry = await res.json();
+    currentScanEvidenceIndex.push(entry);
+    inp.value='';
+    document.getElementById(`${fid}-note`)?.classList.remove('open');
+    const btn = document.querySelector(`#${fid}-wrap .fev-btn`);
+    if(btn){ btn.classList.add('has-ev'); }
+    toast('Nota guardada como evidencia','ok');
+  }catch(e){ toast('Error: '+e.message,'err'); }
+}
+
+function evDropFinding(e, modId, fid, findingRef){
+  e.preventDefault();
+  const files = Array.from(e.dataTransfer?.files||[]);
+  if(files.length) _uploadFindingFiles(files, modId, fid, findingRef);
+}
+function evFilePickedFinding(e, modId, fid, findingRef){
+  const files = Array.from(e.target.files||[]);
+  if(files.length) _uploadFindingFiles(files, modId, fid, findingRef);
+}
+
+async function _uploadFindingFiles(files, modId, fid, findingRef){
+  const scanId = _evState.scanId || S.scanId;
+  if(!scanId){ toast('Guarda el escaneo primero','err'); return; }
+  const ref = decodeURIComponent(findingRef);
+  for(const file of files){
+    try{
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('module', modId);
+      fd.append('finding_ref', ref);
+      fd.append('caption', file.name);
+      fd.append('source', 'manual');
+      const res = await fetch(`/api/scans/${scanId}/evidence`,{method:'POST',body:fd});
+      if(!res.ok) throw new Error(await res.text());
+      const entry = await res.json();
+      currentScanEvidenceIndex.push(entry);
+      toast(`Evidencia subida: ${file.name}`,'ok');
+    }catch(e){ toast(`Error: ${e.message}`,'err'); }
+  }
+  // Reload the finding evidence panel
+  _loadFindingEvidence(modId, fid, findingRef);
+  // Mark button as having evidence
+  const btn = document.querySelector(`#${fid}-wrap .fev-btn`);
+  if(btn) btn.classList.add('has-ev');
+}
+
+// ── XLSX EXPORT ────────────────────────────────────────────────────────────
+async function downloadXLSX(scanId){
+  toast('Generando Excel...','info');
+  try{
+    const res=await fetch(`/api/scans/${scanId}/xlsx`);
+    if(!res.ok) throw new Error(await res.text());
+    const blob=await res.blob();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    const cd=res.headers.get('Content-Disposition')||'';
+    const fname=cd.match(/filename="([^"]+)"/)?.[1]||`osint_${scanId}.xlsx`;
+    a.download=fname; a.click(); URL.revokeObjectURL(a.href);
+    toast('Excel descargado','ok');
+  }catch(e){ toast('Error generando Excel: '+e.message,'err'); }
+}
+
+// ── MANUAL FINDINGS ────────────────────────────────────────────────────────
+const MANUAL_MOD_FIELDS = {
+  data_leak:   ['breach_name','date','records','data_types','description','domain'],
+  emails:      ['email','source','domain'],
+  subdomains:  ['subdomain','ip','status_code','domain'],
+  ports:       ['port','service','version','domain'],
+  credentials: ['username','password_hint','source','domain'],
+  whois:       ['registrar','registrant','email','country','domain'],
+  ssl:         ['domain','issuer','valid_until','tls_version'],
+  dmarc:       ['domain','policy','has_dmarc','has_spf','issue'],
+  technologies:['technology','category','version','domain'],
+  robots:      ['path','note','domain'],
+  dns:         ['record_type','value','domain'],
+  asn:         ['asn','org','ip_range','domain'],
+  cloud:       ['bucket','provider','access','domain'],
+  cybersquatting:['squatted_domain','registrar','ip','type'],
+  favicons:    ['domain','hash','matched_domain'],
+  credentials: ['credential','source','domain'],
+  sitemap:     ['url','type','domain'],
+};
+
+const MANUAL_FIELD_LABELS = {
+  breach_name:'Nombre de brecha',date:'Fecha',records:'Registros expuestos',
+  data_types:'Tipos de datos (separados por coma)',description:'Descripción',
+  domain:'Dominio',email:'Correo electrónico',source:'Fuente',
+  subdomain:'Subdominio',ip:'Dirección IP',status_code:'Código HTTP',
+  port:'Puerto',service:'Servicio',version:'Versión',
+  username:'Usuario',password_hint:'Contraseña (hint)',
+  registrar:'Registrar',registrant:'Registrante',country:'País',
+  issuer:'Emisor',valid_until:'Válido hasta',tls_version:'Versión TLS',
+  policy:'Política DMARC',has_dmarc:'Tiene DMARC (sí/no)',
+  has_spf:'Tiene SPF (sí/no)',issue:'Problema identificado',
+  technology:'Tecnología',category:'Categoría',
+  path:'Ruta',note:'Nota',
+  record_type:'Tipo de registro',value:'Valor',
+  asn:'ASN',org:'Organización',ip_range:'Rango IP',
+  bucket:'Bucket/Storage',provider:'Proveedor',access:'Acceso',
+  squatted_domain:'Dominio sospechoso',type:'Tipo de variante',
+  hash:'Hash del favicon',matched_domain:'Dominio coincidente',
+  credential:'Credencial',url:'URL',
+};
+
+let _manualState = {scanId:null, modId:null, pending:[], existing:[]};
+
+function openManual(scanId, scanName){
+  _manualState = {scanId, scanName, modId:null, pending:[], existing:[]};
+  document.getElementById('mm-title').textContent = '&#9998; HALLAZGOS MANUALES';
+  document.getElementById('mm-sub').textContent = scanName || scanId;
+  _renderManualBody();
+  document.getElementById('manual-overlay').classList.add('show');
+}
+
+function closeManual(){
+  document.getElementById('manual-overlay').classList.remove('show');
+  _manualState = {scanId:null, modId:null, pending:[], existing:[]};
+}
+
+function closeManualIfBg(e){
+  if(e.target.id==='manual-overlay') closeManual();
+}
+
+function _renderManualBody(){
+  const body = document.getElementById('mm-body');
+  const mods = Object.keys(MANUAL_MOD_FIELDS);
+  const modLabel = id => MOD_LABELS[id]||id;
+  const sevOpts = ['critical','high','medium','low','info'].map(s=>
+    `<option value="${s}">${s.toUpperCase()}</option>`).join('');
+
+  if(!_manualState.modId){
+    // Module picker
+    body.innerHTML = `
+      <div class="mm-section">
+        <div class="mm-section-title">1. SELECCIONA EL MÓDULO</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px">
+          ${mods.map(id=>`
+            <button onclick="_selectManualMod('${id}')" style="
+              background:var(--bg3);border:1px solid var(--border);border-radius:4px;
+              padding:8px 10px;cursor:pointer;text-align:left;transition:all .15s;
+              font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t2)
+            " onmouseover="this.style.borderColor='rgba(255,145,0,.4)';this.style.color='var(--c-orange)'"
+               onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+              ${esc(modLabel(id))}
+            </button>`).join('')}
+        </div>
+      </div>`;
+    document.getElementById('mm-save-btn').style.display='none';
+    document.getElementById('mm-cancel-btn').textContent = 'CERRAR';
+  } else {
+    document.getElementById('mm-save-btn').style.display='';
+    document.getElementById('mm-cancel-btn').textContent = '← VOLVER';
+    document.getElementById('mm-cancel-btn').onclick = ()=>{ _manualState.modId=null; _manualState.pending=[]; _renderManualBody(); };
+
+    const fields = MANUAL_MOD_FIELDS[_manualState.modId] || ['value','description','domain'];
+    const pendingHTML = _manualState.pending.length
+      ? _manualState.pending.map((f,i)=>`
+          <div class="mm-finding-item">
+            <span class="mfi-sev" style="background:rgba(255,145,0,.12);color:var(--c-orange);border:1px solid rgba(255,145,0,.3)">${(f.severity||'?').toUpperCase()}</span>
+            <span class="mfi-val">${esc(f.value||f.breach_name||f.email||f.subdomain||f.port||f.squatted_domain||f.url||Object.values(f).find(v=>v&&typeof v==='string'&&v.length>1)||'—')}</span>
+            <span class="mfi-manual">NUEVO</span>
+            <button class="mfi-del" onclick="_removePending(${i})">&#x2715;</button>
+          </div>`).join('')
+      : `<div class="mm-empty">Sin hallazgos nuevos aún</div>`;
+
+    const existingHTML = _manualState.existing.length
+      ? _manualState.existing.map((f,i)=>`
+          <div class="mm-finding-item">
+            <span class="mfi-sev" style="background:rgba(0,212,255,.08);color:var(--c-cyan);border:1px solid rgba(0,212,255,.2)">${(f.severity||'?').toUpperCase()}</span>
+            <span class="mfi-val">${esc(f.value||f.breach_name||f.email||f.subdomain||f.port||f.squatted_domain||f.url||Object.values(f).find(v=>v&&typeof v==='string'&&v.length>1)||'—')}</span>
+            <span class="mfi-manual">GUARDADO</span>
+          </div>`).join('')
+      : '';
+
+    body.innerHTML = `
+      <div class="mm-section">
+        <div class="mm-section-title">MÓDULO: ${esc(modLabel(_manualState.modId).toUpperCase())}</div>
+        ${fields.map(field=>`
+          <div class="mm-field">
+            <label>${esc((MANUAL_FIELD_LABELS[field]||field).toUpperCase())}</label>
+            <input type="text" id="mf-${field}" placeholder="${esc(MANUAL_FIELD_LABELS[field]||field)}"/>
+          </div>`).join('')}
+        <div class="mm-field">
+          <label>SEVERIDAD</label>
+          <select id="mf-severity">${sevOpts}</select>
+        </div>
+        <button class="btn-sm" onclick="_addPending()" style="width:100%;margin-top:4px">+ AGREGAR HALLAZGO</button>
+      </div>
+      ${_manualState.pending.length||_manualState.existing.length?`
+      <div class="mm-section">
+        <div class="mm-section-title">HALLAZGOS A GUARDAR (${_manualState.pending.length})</div>
+        <div class="mm-finding-list">${pendingHTML}</div>
+        ${existingHTML?`<div class="mm-section-title" style="margin-top:10px">YA GUARDADOS (${_manualState.existing.length})</div><div class="mm-finding-list">${existingHTML}</div>`:''}
+      </div>`:''}`;
+  }
+}
+
+async function _selectManualMod(modId){
+  _manualState.modId = modId;
+  _manualState.pending = [];
+  // Load existing manual findings for this module
+  try{
+    const res = await fetch(`/api/scans/${_manualState.scanId}/manual/${modId}`);
+    const data = await res.json();
+    _manualState.existing = data.findings || [];
+  }catch(e){ _manualState.existing = []; }
+  _renderManualBody();
+}
+
+function _addPending(){
+  const fields = MANUAL_MOD_FIELDS[_manualState.modId] || ['value','description','domain'];
+  const finding = {manual:true};
+  fields.forEach(field=>{
+    const el = document.getElementById('mf-'+field);
+    if(el && el.value.trim()){
+      // data_types field: split by comma
+      if(field==='data_types'){
+        finding[field] = el.value.split(',').map(s=>s.trim()).filter(Boolean);
+      } else {
+        finding[field] = el.value.trim();
+      }
+    }
+  });
+  finding.severity = document.getElementById('mf-severity')?.value || 'medium';
+  // Derive value field for display
+  const fields2 = MANUAL_MOD_FIELDS[_manualState.modId]||[];
+  finding.value = finding[fields2[0]] || '';
+  // Derive type
+  finding.type = 'manual_'+_manualState.modId;
+
+  const hasData = Object.keys(finding).filter(k=>!['manual','severity','type','value'].includes(k)).length > 0;
+  if(!hasData){ toast('Ingresa al menos un campo','err'); return; }
+
+  _manualState.pending.push(finding);
+  // Clear inputs
+  fields.forEach(field=>{ const el=document.getElementById('mf-'+field); if(el) el.value=''; });
+  _renderManualBody();
+}
+
+function _removePending(i){
+  _manualState.pending.splice(i,1);
+  _renderManualBody();
+}
+
+async function saveManualFindings(){
+  if(!_manualState.modId){ toast('Selecciona un módulo','err'); return; }
+  if(!_manualState.pending.length){ toast('No hay hallazgos para guardar','err'); return; }
+  const btn = document.getElementById('mm-save-btn');
+  btn.disabled = true; btn.textContent = 'GUARDANDO...';
+  try{
+    const res = await fetch(`/api/scans/${_manualState.scanId}/manual`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({module: _manualState.modId, findings: _manualState.pending})
+    });
+    if(!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    toast(`${data.added} hallazgo(s) guardado(s) en ${_manualState.modId}`,'ok');
+    _manualState.pending = [];
+    _manualState.existing = (await (await fetch(`/api/scans/${_manualState.scanId}/manual/${_manualState.modId}`)).json()).findings || [];
+    _renderManualBody();
+    loadHistory();
+  }catch(e){ toast('Error guardando: '+e.message,'err'); }
+  finally{ btn.disabled=false; btn.textContent='&#10003; GUARDAR'; }
+}
+
+function confirmDelete(id, name){
+  document.getElementById('cb-title').textContent=t('confirm_title');
+  document.getElementById('cb-msg').textContent=t('confirm_msg',{name});
+  document.getElementById('cb-ok').textContent=t('confirm_ok');
+  document.getElementById('cb-ok').onclick=()=>{ doDelete(id); closeConfirm(); };
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+function closeConfirm(){
+  document.getElementById('confirm-overlay').classList.remove('show');
+}
+async function doDelete(id){
+  try{
+    await fetch(`/api/scans/${id}`,{method:'DELETE'});
+    toast(t('toast_del_ok'),'ok'); await loadHistory();
+  }catch(e){ toast(t('toast_del_err'),'err'); }
+}
+
+// ── IMPORT ─────────────────────────────────────────────────────────────────
+async function importScans(input){
+  const files=Array.from(input.files);
+  if(!files.length) return;
+  input.value='';
+  if(S.currentTab!=='hist') switchTab('hist');
+  const list=document.getElementById('scan-list');
+  const progressWrap=document.createElement('div');
+  progressWrap.id='import-progress'; progressWrap.style.marginBottom='10px';
+  list.prepend(progressWrap);
+  let ok=0,fail=0;
+  for(const file of files){
+    const row=document.createElement('div'); row.className='import-row';
+    row.innerHTML=`<span class="spin"></span><span class="import-row-name">${esc(file.name)}</span><span class="import-row-status">${t('import_processing')}</span>`;
+    progressWrap.appendChild(row);
+    const statusEl=row.querySelector('.import-row-status');
+    try{
+      const text=await file.text();
+      let data; try{ data=JSON.parse(text); }catch{ throw new Error(t('import_invalid_json')); }
+      if(!data.modules||typeof data.modules!=='object') throw new Error(t('import_invalid_format'));
+      const res=await fetch('/api/scans/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      if(!res.ok){ const err=await res.json().catch(()=>({})); throw new Error(err.detail||`HTTP ${res.status}`); }
+      const result=await res.json();
+      row.querySelector('.spin').remove();
+      row.innerHTML=`<span style="color:var(--c-green);font-size:12px;flex-shrink:0">&#10003;</span><span class="import-row-name">${esc(file.name)}</span><span class="import-row-status ok">${result.company} — ${result.modules} ${t('import_modules')}</span>`;
+      ok++;
+    }catch(e){
+      row.querySelector('.spin').remove();
+      row.innerHTML=`<span style="color:var(--c-red);font-size:12px;flex-shrink:0">&#x2715;</span><span class="import-row-name">${esc(file.name)}</span><span class="import-row-status err">${esc(e.message)}</span>`;
+      fail++;
+    }
+  }
+  await loadHistory();
+  setTimeout(()=>{ progressWrap.remove(); },4000);
+  if(ok>0&&fail===0) toast(t('toast_import_ok',{n:ok}),'ok');
+  else if(ok>0) toast(t('toast_import_part',{ok,fail}),'ok');
+  else toast(t('toast_import_err',{fail}),'err');
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function esc(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function formatDate(ts){ try{ return new Date(ts).toLocaleString('es-CR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch{ return ts||'N/A'; }}
+
+let toastT;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=type; el.style.display='block';
+  clearTimeout(toastT); toastT=setTimeout(()=>{ el.style.display='none'; },4000);
+}
+
+// ── SETTINGS ───────────────────────────────────────────────────────────────
+async function openSettings(){
+  document.getElementById('settings-overlay').classList.add('show');
+  await loadSettingsKeys(); loadAuditLog();
+}
+function closeSettings(){ document.getElementById('settings-overlay').classList.remove('show'); }
+
+async function loadAuditLog(){
+  try{
+    const r=await fetch('/api/keys/audit');
+    const d=await r.json();
+    const el=document.getElementById('audit-log-list');
+    if(!el)return;
+    if(!d.entries||!d.entries.length){el.innerHTML='<span style="color:var(--t3);font-size:11px">Sin actividad registrada</span>';return;}
+    el.innerHTML=d.entries.slice(0,20).map(e=>{
+      const col=e.action==='set'?'var(--c-green)':e.action==='delete'?'var(--c-red)':'var(--c-cyan)';
+      return `<div class="audit-row"><span class="audit-ts">${e.ts}</span><span style="color:${col};font-size:11px;min-width:80px">${e.action.toUpperCase()}</span><span style="color:var(--t2);font-size:11px">${e.service}</span>${e.ok?'':'<span style="color:var(--c-red);font-size:10px">FAIL</span>'}</div>`;
+    }).join('');
+  }catch(ex){console.warn('audit',ex);}
+}
+async function loadSettingsKeys(){
+  const body=document.getElementById('settings-body');
+  body.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px"><span class="spin"></span><span style="font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-xs);color:var(--t3)">${t('settings_loading')}</span></div>`;
+  try{
+    const res=await fetch('/api/keys');
+    const services=await res.json();
+    renderSettingsKeys(services);
+  }catch(e){
+    body.innerHTML=`<div style="color:var(--c-red);font-family:'Share Tech Mono',monospace;font-size:var(--fs-mono-sm)">Error cargando ajustes: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderSettingsKeys(services){
+  const body=document.getElementById('settings-body'); body.innerHTML='';
+  const banner=document.createElement('div');
+  banner.style.cssText=`background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:4px;padding:10px 14px;font-size:var(--fs-body);color:var(--t2);line-height:1.6`;
+  banner.innerHTML=t('settings_banner');
+  body.appendChild(banner);
+  for(const svc of services){
+    const card=document.createElement('div');
+    card.className=`key-card${svc.configured?' configured':''}`;
+    card.id=`key-card-${svc.id}`;
+    const statusLabel=svc.configured
+      ?(()=>{
+        const src=svc.source;
+        const label=src==='encrypted_store'?'🔒 CIFRADA'
+          :src==='env_pending_import'?'⏳ IMPORTANDO...'
+          :src==='env'?'ENV'
+          :'✔ GUARDADA';
+        const title=src==='encrypted_store'?'Almacenada con AES-128 + PBKDF2-SHA256 (600k iter)'
+          :src==='env_pending_import'?'Se importará al store cifrado en el próximo scan'
+          :'';
+        return `<span class="key-card-status ok" title="${title}">${label}</span>`;
+      })()
+      :`<span class="key-card-status none">${t('settings_not_configured')}</span>`;
+    card.innerHTML=`<div class="key-card-top"><span class="key-card-name">${esc(svc.label)}</span>${svc.sensitive?'<span class="key-sensitive-badge" title="Key sensible — cifrada con PBKDF2+AES">🔐</span>':''} ${statusLabel}</div><div class="key-card-help">${esc(svc.help)}<br><a href="${esc(svc.url)}" target="_blank" rel="noopener">${t('settings_get_key')}</a></div><div class="key-input-row"><input type="password" id="kinput-${esc(svc.id)}" placeholder="${svc.configured?t('settings_ph_configured'):t('settings_ph_empty')}" autocomplete="off"><button class="btn-save-key" onclick="saveKey('${esc(svc.id)}')">${t('settings_save')}</button>${svc.configured&&svc.source!=='env'?`<button class="btn-del-key" onclick="deleteKey('${esc(svc.id)}')" title="Eliminar key">&#x2715;</button>`:''}</div>`;
+    body.appendChild(card);
+  }
+}
+
+async function saveKey(serviceId){
+  const input=document.getElementById(`kinput-${serviceId}`);
+  const value=input.value.trim();
+  if(!value){ toast(t('toast_key_empty'),'err'); return; }
+  try{
+    const res=await fetch(`/api/keys/${serviceId}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value})});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    input.value=''; toast(t('toast_key_ok'),'ok'); await loadSettingsKeys();
+  }catch(e){ toast(t('toast_key_err')+e.message,'err'); }
+}
+
+async function deleteKey(serviceId){
+  try{
+    await fetch(`/api/keys/${serviceId}`,{method:'DELETE'});
+    toast(t('toast_key_del'),'ok'); await loadSettingsKeys();
+  }catch(e){ toast('Error: '+e.message,'err'); }
+}
+</script>
+</body>
+</html>

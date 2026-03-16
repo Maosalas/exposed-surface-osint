@@ -1,0 +1,15 @@
+# FastAPI server
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+
+# DNS / network
+dnspython>=2.6.0
+python-whois>=0.9.3
+requests>=2.31.0
+aiohttp>=3.9.5
+
+# API integrations
+shodan>=1.31.0
+
+# wafw00f y dnstwist se instalan en paso anterior del Dockerfile
+# theHarvester tiene su propio venv en /opt/theHarvester-venv
